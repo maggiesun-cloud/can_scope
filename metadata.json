@@ -1,0 +1,6 @@
+{
+  "name": "CANScope",
+  "description": "Professional browser-based CAN and CAN-FD bus monitoring, sniffing, decoding, graphing, and transmission analyzer with hardware abstraction and runtime backend discovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
