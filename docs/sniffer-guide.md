@@ -30,15 +30,55 @@ Before traffic can be sniffed, CANScope must attach to an active CAN interface.
    - **Select Backend**:
      - `pcan`: For PEAK-System USB adapters on Linux or macOS (`PCAN_USBBUS1`, `PCAN_USBBUS2`).
      - `socketcan`: For Linux native CAN controllers (`can0`, `can1`) or virtual busses (`vcan0`).
-     - `virtual`: Built-in zero-hardware simulation bus with realistic vehicle powertrain and sensor traffic.
-   - **Configure Bitrate**:
-     - Choose nominal bitrate (e.g., `500,000` bps for standard automotive or `250,000` bps for J1939).
+     - `mock`: Built-in zero-hardware simulation bus with realistic vehicle powertrain and sensor traffic.
+   - **Select Channel / Port (Multi-Channel Support)**:
+     - See [Section 2.1: Multi-Channel Port Selection](#21-multi-channel-port-selection) below.
+   - **Configure Nominal Bitrate (500k vs 1M)**:
+     - See [Section 2.2: Bitrate Configuration](#22-bitrate-configuration-500k-vs-1-million) below.
    - **CAN-FD (Optional)**:
      - Enable CAN-FD and configure the secondary data bitrate (e.g., `2,000,000` or `5,000,000` bps).
    - **Listen-Only Mode (Recommended for passive sniffing)**:
      - Check **Listen-Only Mode** to prevent the CAN controller from sending Acknowledge (ACK) bits or error frames, ensuring 100% passive, non-intrusive monitoring.
-4. Click **Connect Interface**.
+4. Click **Connect to Bus**.
 5. The top status bar will change to a green **Connected** badge displaying real-time bus load, message rate (msg/s), and frame counts.
+
+### 2.1 Multi-Channel Port Selection
+
+If your hardware CAN interface supports multiple physical ports (e.g., dual-channel PEAK PCAN-USB Pro, dual CANable, Kvaser 2x/4x, InnoMaker USB-CAN Dual):
+
+| Operating System & Driver | Channel 1 | Channel 2 | Channel 3 / 4 | Custom / Virtual |
+| :--- | :--- | :--- | :--- | :--- |
+| **Linux (SocketCAN)** | `can0` | `can1` | `can2`, `can3` | `vcan0`, `slcan0` |
+| **macOS / Windows (PEAK PCAN)** | `PCAN_USBBUS1` | `PCAN_USBBUS2` | `PCAN_USBBUS3`, `PCAN_USBBUS4` | `PCAN_LANBUS1` |
+| **Simulator (Zero Hardware)** | `mock0` | `mock1` | — | `mock0` |
+
+#### How to Switch Channels in CANScope:
+1. Click **Disconnect** in the top bar if currently running.
+2. Click **Connect** to open the **CAN Bus Interface Configuration** modal.
+3. In the **Channel / Node** field:
+   - **Auto-Detected**: If your OS reports multiple channels, select from the dropdown (e.g. `can1 (SocketCAN Device)` or `PCAN_USBBUS2`).
+   - **Manual Port Entry**: If not auto-detected or using an external bridge, click the text input and directly type the interface identifier (e.g., `can1`, `PCAN_USBBUS2`, `vcan1`).
+4. Click **Connect to Bus**. The top status badge will immediately update to show the active channel.
+
+### 2.2 Bitrate Configuration (500k vs. 1 Million)
+
+CAN is a synchronous shared-bus protocol. **All physical nodes connected to the same CAN bus must operate at the exact same nominal bitrate**. If there is a baud rate mismatch, transceivers will interpret incoming bits as frame format violations and spam Error Frames on the wire.
+
+| Nominal Bitrate | Standard Use Cases | Typical Bus Length | Characteristics |
+| :--- | :--- | :--- | :--- |
+| **500 kbit/s (Standard)** | OBD-II Diagnostics, High-Speed Powertrain, Modern Passenger Cars (ISO 11898-2) | ≤ 100 meters | Standard in automotive passenger vehicles; balances electromagnetic immunity and throughput. |
+| **1 Mbit/s (1 Million)** | High-Performance Motorsport, Robotics, Internal ECU testbenches, Aerospace (CANopen) | ≤ 25–40 meters | Maximum standard ISO 11898-1 rate. Requires clean wiring and 120 Ω termination resistors at both bus ends. |
+| **250 kbit/s** | Heavy-Duty Trucks & Commercial Vehicles (SAE J1939), Marine (NMEA 2000), Agriculture (ISOBUS) | ≤ 250 meters | Maximum cable distance with high noise rejection. |
+| **125 kbit/s** | Low-Speed Body CAN, Infotainment, Climate controls, Older architectures | ≤ 500 meters | Highly fault-tolerant. |
+
+#### How to Change the Sniffer Bitrate in CANScope:
+1. Disconnect the active sniffer by clicking **Disconnect** in the top status bar.
+2. Click **Connect** in the top status bar.
+3. In the **Nominal Bitrate** dropdown, select:
+   - `500 kbit/s (Standard)` for standard automotive/OBD-II buses.
+   - `1 Mbit/s` for 1-million bps high-speed/robotics setups.
+4. If using **CAN-FD**, check **Enable CAN-FD Flexible Data-Rate** to configure the accelerated payload data phase (`2 Mbit/s`, `4 Mbit/s`, or `5 Mbit/s`).
+5. Click **Connect to Bus**. The status bar badge will reflect the new bitrate (e.g., `500k` or `1.0M`).
 
 ### How to Stop Sniffing from Hardware:
 1. In the **Top Status Bar**, click the red **Disconnect** button.

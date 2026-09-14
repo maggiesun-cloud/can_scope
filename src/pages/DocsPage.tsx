@@ -479,6 +479,71 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Section 5: Bitrate & Multi-Channel Ports */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-4">
+              <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
+                <Radio className="w-4 h-4" />
+                <span>5. Configuring Bitrate (500 kbit/s vs. 1 Mbit/s) & Multi-Channel Ports</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                CAN is a shared synchronous bus where every connected node must operate at the exact same nominal bitrate. Mismatched bitrates trigger transceiver form errors and cause the CAN controller to enter <em>Error Passive</em> or <em>Bus-Off</em> states.
+              </p>
+
+              {/* Bitrate Table */}
+              <div className="space-y-2">
+                <span className="font-semibold text-zinc-200 text-xs">Standard Bitrates & Use Cases:</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-cyan-300">500 kbit/s (Standard)</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">Automotive OBD-II</span>
+                    </div>
+                    <p className="text-zinc-400 text-[11px]">
+                      Default standard for passenger vehicle high-speed CAN networks, OBD-II diagnostic ports, and powertrain telemetry. Maximum bus length ~100m.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-blue-300">1 Mbit/s (1 Million)</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">Robotics / Motorsport</span>
+                    </div>
+                    <p className="text-zinc-400 text-[11px]">
+                      High-throughput applications, actuator buses, industrial robotics (CANopen), and motorsport ECUs. Maximum bus length ~25–40m with mandatory 120 Ω termination resistors.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Multi-Channel Guide */}
+              <div className="p-3.5 bg-zinc-950 border border-zinc-800/90 rounded-xl space-y-2">
+                <div className="font-semibold text-zinc-200 text-xs flex items-center justify-between">
+                  <span>Connecting Multi-Channel CAN Adapters</span>
+                  <span className="text-[10px] font-mono text-zinc-500">Dual/Quad Port Devices</span>
+                </div>
+                <p className="text-zinc-400 text-[11px] leading-relaxed">
+                  If using a multi-channel hardware device (such as dual-channel PEAK PCAN-USB Pro, dual CANable, Kvaser, or multiple USB adapters):
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
+                  <div className="p-2.5 bg-zinc-900 rounded border border-zinc-800 space-y-1">
+                    <div className="text-cyan-400 font-bold">Linux (SocketCAN)</div>
+                    <div className="text-zinc-300">Port 1: <code className="text-emerald-300">can0</code></div>
+                    <div className="text-zinc-300">Port 2: <code className="text-emerald-300">can1</code></div>
+                    <div className="text-zinc-300">Port 3: <code className="text-emerald-300">can2</code></div>
+                  </div>
+                  <div className="p-2.5 bg-zinc-900 rounded border border-zinc-800 space-y-1">
+                    <div className="text-cyan-400 font-bold">macOS / Windows (PEAK PCAN)</div>
+                    <div className="text-zinc-300">Port 1: <code className="text-emerald-300">PCAN_USBBUS1</code></div>
+                    <div className="text-zinc-300">Port 2: <code className="text-emerald-300">PCAN_USBBUS2</code></div>
+                    <div className="text-zinc-300">Port 3: <code className="text-emerald-300">PCAN_USBBUS3</code></div>
+                  </div>
+                </div>
+                <p className="text-zinc-400 text-[11px] pt-1">
+                  In CANScope, click <strong className="text-zinc-200">Connect</strong> in the top status bar, then pick the port from the <strong>Channel / Node</strong> dropdown (or type your channel name directly if not listed).
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

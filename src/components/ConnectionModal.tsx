@@ -267,7 +267,12 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
           {/* Channel selection */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-zinc-300 mb-1">Channel / Node</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-zinc-300">Channel / Node</label>
+                <span className="text-[10px] text-zinc-500 font-mono" title="Select port or type custom channel (e.g. can0/can1, PCAN_USBBUS1/PCAN_USBBUS2)">
+                  Multi-port
+                </span>
+              </div>
               {filteredInterfaces.length > 0 ? (
                 <select
                   value={channel}
@@ -285,25 +290,36 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                   type="text"
                   value={channel}
                   onChange={(e) => setChannel(e.target.value)}
-                  placeholder="e.g. can0 or PCAN_USBBUS1"
+                  placeholder="e.g. can0, can1, PCAN_USBBUS1"
                   className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-zinc-200 font-mono text-xs focus:outline-none focus:border-cyan-500"
                 />
               )}
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Port 1: <code className="text-zinc-400">can0</code> / <code className="text-zinc-400">PCAN_USBBUS1</code> | Port 2: <code className="text-zinc-400">can1</code> / <code className="text-zinc-400">PCAN_USBBUS2</code>
+              </p>
             </div>
 
             {/* Bitrate */}
             <div>
-              <label className="block font-semibold text-zinc-300 mb-1">Nominal Bitrate</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-zinc-300">Nominal Bitrate</label>
+                <span className="text-[10px] text-cyan-400 font-mono">
+                  {bitrate >= 1000000 ? '1.0 Mbit/s' : `${bitrate / 1000} kbit/s`}
+                </span>
+              </div>
               <select
                 value={bitrate}
                 onChange={(e) => setBitrate(Number(e.target.value))}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-zinc-200 font-mono text-xs focus:outline-none focus:border-cyan-500"
               >
-                <option value={125000}>125 kbit/s</option>
-                <option value={250000}>250 kbit/s</option>
-                <option value={500000}>500 kbit/s (Standard)</option>
-                <option value={1000000}>1 Mbit/s</option>
+                <option value={125000}>125 kbit/s (Low-Speed / Body)</option>
+                <option value={250000}>250 kbit/s (SAE J1939 / Trucks)</option>
+                <option value={500000}>500 kbit/s (Standard Automotive / OBD-II)</option>
+                <option value={1000000}>1 Mbit/s (1 Million / Motorsport / Robotics)</option>
               </select>
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Matches vehicle/node speed. 500k is standard OBD-II; 1M is high-throughput.
+              </p>
             </div>
           </div>
 
