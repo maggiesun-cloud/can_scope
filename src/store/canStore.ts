@@ -6,10 +6,17 @@ import {
   FilterConfig,
   RecordingSession,
   SystemInfo,
+  IndexedDbSettings,
+  SnifferSessionMeta,
 } from '../types/can';
 import { parseDbc, decodeFrameWithDbc, SAMPLE_VEHICLE_DBC } from '../utils/dbc';
 import { canWsClient } from '../services/websocket';
 import * as api from '../services/api';
+import {
+  indexedDbService,
+  DEFAULT_INDEXEDDB_SETTINGS,
+  DEFAULT_RETENTION_MONTHS,
+} from '../services/indexedDb';
 
 export interface ToastMessage {
   id: string;
@@ -82,6 +89,8 @@ export function useCanStore() {
     frameCount: 0,
     estimatedSizeBytes: 0,
   });
+
+  const [indexedDbSettings, setIndexedDbSettings] = useState<IndexedDbSettings>(DEFAULT_INDEXEDDB_SETTINGS);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -212,6 +221,11 @@ export function useCanStore() {
         .catch(() => {});
     }, 1500);
 
+    // Initialize IndexedDB settings & 6-month retention maintenance
+    indexedDbService.loadSettings().then(setIndexedDbSettings).catch(() => {});
+    indexedDbService.pruneExpiredSessions(DEFAULT_RETENTION_MONTHS).catch(() => {});
+    indexedDbService.seedSampleHistoryIfEmpty().catch(() => {});
+
     return () => {
       unsubFrame();
       unsubStatus();
@@ -220,14 +234,136 @@ export function useCanStore() {
     };
   }, [handleIncomingFrame]);
 
+  // Save current sniffer buffer to browser's IndexedDB
+  const saveSnifferToIndexedDb = useCallback(
+    async (
+      customName?: string,
+      notes?: string,
+      customFrames?: CanFrame[]
+    ): Promise<SnifferSessionMeta | null> => {
+      const targetFrames = customFrames || frames;
+      if (targetFrames.length === 0) {
+        addToast('Nothing to Save', 'No frames in the current sniffer cache.', 'warning');
+        return null;
+      }
+      try {
+        const meta = await indexedDbService.saveSnifferSession(
+          {
+            name: customName,
+            channel: status.channel || 'mock0',
+            bitrate: status.bitrate || 500000,
+            notes,
+            retentionMonths: indexedDbSettings.retentionMonths || DEFAULT_RETENTION_MONTHS,
+          },
+          targetFrames
+        );
+        addToast(
+          'Saved to IndexedDB Cache',
+          `Saved ${meta.frameCount.toLocaleString()} frames (${meta.uniqueCanIds.length} unique IDs). Stored for 6 months.`,
+          'success'
+        );
+        return meta;
+      } catch (err: any) {
+        addToast('IndexedDB Save Failed', err.message || 'Error writing to storage', 'error');
+        return null;
+      }
+    },
+    [frames, status.channel, status.bitrate, indexedDbSettings.retentionMonths, addToast]
+  );
+
+  // Load a historical session's frames into the active monitor for live analysis/graphs
+  const loadHistoricalFrames = useCallback(
+    (historicalFrames: CanFrame[], sessionName: string) => {
+      frameBufferRef.current = [];
+      aggStatsRef.current.clear();
+
+      // Reconstruct aggregated stats from historical frames
+      const newAggMap = new Map<number, AggregatedIdStats>();
+      historicalFrames.forEach((rawFrame) => {
+        const decoded = decodeFrameWithDbc(rawFrame.id, rawFrame.data, activeDbcRef.current);
+        const currentAgg = newAggMap.get(rawFrame.id);
+        let periodMs = 0;
+        let freqHz = 0;
+        let changedBytes = rawFrame.data.map(() => false);
+        if (currentAgg) {
+          periodMs = Math.round((rawFrame.timestamp - currentAgg.lastTimestamp) * 1000 * 10) / 10;
+          freqHz = periodMs > 0 ? Math.round((1000 / periodMs) * 10) / 10 : 0;
+          changedBytes = rawFrame.data.map((b, i) =>
+            currentAgg.lastData[i] !== undefined ? currentAgg.lastData[i] !== b : false
+          );
+        }
+        newAggMap.set(rawFrame.id, {
+          id: rawFrame.id,
+          idHex: rawFrame.idHex,
+          extended: rawFrame.extended,
+          fd: rawFrame.fd,
+          count: (currentAgg ? currentAgg.count : 0) + 1,
+          lastTimestamp: rawFrame.timestamp,
+          periodMs,
+          freqHz,
+          lastData: rawFrame.data,
+          lastDlc: rawFrame.dlc,
+          changedBytes,
+          decoded,
+        });
+      });
+
+      aggStatsRef.current = newAggMap;
+      setAggregatedStats(newAggMap);
+      setFrames(historicalFrames);
+      setIsPaused(true); // Pause sniffer so historical capture is cleanly viewable
+      addToast(
+        'Historical Session Loaded',
+        `Loaded ${historicalFrames.length.toLocaleString()} frames from "${sessionName}". Sniffer paused.`,
+        'info'
+      );
+    },
+    [addToast]
+  );
+
+  const updateIndexedDbSettings = useCallback(
+    async (newSettings: Partial<IndexedDbSettings>) => {
+      setIndexedDbSettings((prev) => {
+        const updated = { ...prev, ...newSettings };
+        indexedDbService.saveSettings(updated).catch(() => {});
+        return updated;
+      });
+      addToast('Storage Settings Updated', 'IndexedDB retention and preferences saved.', 'info');
+    },
+    [addToast]
+  );
+
   // Actions
   const clearFrames = useCallback(() => {
+    // If auto-save on clear is enabled, save snapshot if there are frames
+    if (indexedDbSettings.autoSaveOnClear && frames.length >= 10) {
+      indexedDbService
+        .saveSnifferSession(
+          {
+            name: `Auto-saved Cache (${frames.length} frames before clear)`,
+            channel: status.channel || 'can0',
+            bitrate: status.bitrate || 500000,
+            isAutoSaved: true,
+            retentionMonths: indexedDbSettings.retentionMonths || DEFAULT_RETENTION_MONTHS,
+          },
+          frames
+        )
+        .then(() => {
+          addToast(
+            'Auto-saved to IndexedDB',
+            `Cached ${frames.length} frames to 6-month history before clear.`,
+            'info'
+          );
+        })
+        .catch(() => {});
+    }
+
     frameBufferRef.current = [];
     aggStatsRef.current.clear();
     setFrames([]);
     setAggregatedStats(new Map());
     addToast('Monitor Cleared', 'Message buffer has been cleared.', 'info');
-  }, [addToast]);
+  }, [frames, indexedDbSettings.autoSaveOnClear, indexedDbSettings.retentionMonths, status.channel, status.bitrate, addToast]);
 
   const togglePause = useCallback(() => {
     setIsPaused((p) => {
@@ -340,12 +476,16 @@ export function useCanStore() {
     activeDbc,
     filter,
     recording,
+    indexedDbSettings,
     toasts,
     setMaxDisplayLimit,
     setSelectedFrame,
     setFilter,
     clearFrames,
     togglePause,
+    saveSnifferToIndexedDb,
+    loadHistoricalFrames,
+    updateIndexedDbSettings,
     handleConnect,
     handleDisconnect,
     handleToggleRecording,

@@ -1,12 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RecordingSession, CanFrame } from '../types/can';
-import { Play, Square, Download, HardDrive, FileText, CheckCircle2, Clock, Layers } from 'lucide-react';
+import {
+  Play,
+  Square,
+  Download,
+  HardDrive,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Layers,
+  Archive,
+  ArrowRight,
+  ShieldCheck,
+  Save,
+} from 'lucide-react';
 
 interface LoggingPageProps {
   recording: RecordingSession;
   onToggleRecording: () => void;
   frames: CanFrame[];
   onClear: () => void;
+  onSaveToIndexedDb?: (name?: string, notes?: string) => Promise<any>;
+  onNavigateToHistory?: () => void;
 }
 
 export const LoggingPage: React.FC<LoggingPageProps> = ({
@@ -14,8 +29,29 @@ export const LoggingPage: React.FC<LoggingPageProps> = ({
   onToggleRecording,
   frames,
   onClear,
+  onSaveToIndexedDb,
+  onNavigateToHistory,
 }) => {
   const isRecording = recording.isRecording;
+  const [isSavingDb, setIsSavingDb] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSaveToDb = async () => {
+    if (!onSaveToIndexedDb || frames.length === 0) return;
+    setIsSavingDb(true);
+    try {
+      await onSaveToIndexedDb(
+        `Recording Session Snapshot (${frames.length} frames)`,
+        'Captured from Logging & Trace recorder'
+      );
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch {
+      // Handled in store
+    } finally {
+      setIsSavingDb(false);
+    }
+  };
 
   const handleDownloadCsv = () => {
     const header = 'timestamp,direction,id,type,dlc,data\n';
@@ -158,6 +194,64 @@ export const LoggingPage: React.FC<LoggingPageProps> = ({
             <Download className="w-4 h-4 text-cyan-400" />
             <span>Export as JSON File</span>
           </button>
+        </div>
+      </div>
+
+      {/* IndexedDB 6-Month Sniffer Persistence Banner */}
+      <div className="p-5 bg-zinc-900/90 border border-zinc-800 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-cyan-950/80 border border-cyan-800/60 text-cyan-400 rounded-lg shrink-0 mt-0.5">
+            <Archive className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-sm text-zinc-100">
+                IndexedDB Local Browser Cache (6-Month Storage)
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                100+ Captures/Day Ready
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
+              Persist sniffer captures directly inside your browser&apos;s client database with automatic 6-month retention, instant CAN ID search indexing, and offline replay capabilities.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2 shrink-0">
+          <button
+            onClick={handleSaveToDb}
+            disabled={frames.length === 0 || isSavingDb}
+            className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer ${
+              savedSuccess
+                ? 'bg-emerald-600 text-zinc-950'
+                : frames.length > 0
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-zinc-950 shadow-sm'
+                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+            }`}
+          >
+            {savedSuccess ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Saved to Cache!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Save to IndexedDB ({frames.length})</span>
+              </>
+            )}
+          </button>
+
+          {onNavigateToHistory && (
+            <button
+              onClick={onNavigateToHistory}
+              className="px-3 py-2 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition cursor-pointer flex items-center space-x-1"
+            >
+              <span>View History Cache</span>
+              <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { BusStatus, CanBackendType, CanConfig, SystemInfo } from '../types/can';
-import { X, Cpu, AlertTriangle, Play, HelpCircle, Check } from 'lucide-react';
+import {
+  X,
+  Cpu,
+  AlertTriangle,
+  Play,
+  HelpCircle,
+  Check,
+  Apple,
+  Terminal,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 interface ConnectionModalProps {
   isOpen: boolean;
@@ -26,6 +38,22 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [autoReconnect, setAutoReconnect] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showMacGuide, setShowMacGuide] = useState(false);
+  const [copiedMacCommands, setCopiedMacCommands] = useState(false);
+
+  const macOsInstallScript = [
+    'python3 --version',
+    'python3 -m venv ~/canscope-venv',
+    'source ~/canscope-venv/bin/activate',
+    'python3 -m pip install -U "python-can[pcan]"',
+    'python3 -c "import can; print(can.__version__)"',
+  ].join('\n');
+
+  const handleCopyMacCommands = () => {
+    navigator.clipboard.writeText(macOsInstallScript);
+    setCopiedMacCommands(true);
+    setTimeout(() => setCopiedMacCommands(false), 2500);
+  };
 
   // Available channels based on selected backend
   const availableInterfaces = systemInfo?.detectedInterfaces || [];
@@ -180,6 +208,59 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Start Simulation Mode</span>
               </button>
+            </div>
+          )}
+
+          {/* macOS PCAN Install Detail Helper */}
+          {backend === 'pcan' && (
+            <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowMacGuide(!showMacGuide)}
+                  className="flex items-center space-x-2 text-xs font-semibold text-zinc-200 hover:text-cyan-300 transition cursor-pointer"
+                >
+                  <Apple className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>macOS Install Instructions (`python-can[pcan]`)</span>
+                  {showMacGuide ? (
+                    <ChevronUp className="w-3 h-3 text-zinc-400" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-zinc-400" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyMacCommands}
+                  className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 flex items-center space-x-1 transition cursor-pointer"
+                >
+                  {copiedMacCommands ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 text-zinc-400" />
+                      <span>Copy All</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {(showMacGuide || !isPcanAvailable) && (
+                <div className="p-2.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px] text-zinc-300 space-y-1 mt-1.5 overflow-x-auto">
+                  <div className="text-zinc-500"># Verify Python 3:</div>
+                  <div className="text-cyan-400">python3 --version</div>
+                  <div className="text-zinc-500 mt-1"># Create & activate virtual environment:</div>
+                  <div className="text-cyan-400">python3 -m venv ~/canscope-venv</div>
+                  <div className="text-cyan-400">source ~/canscope-venv/bin/activate</div>
+                  <div className="text-zinc-500 mt-1"># Install python-can with PCAN support:</div>
+                  <div className="text-emerald-400 font-semibold">python3 -m pip install -U &quot;python-can[pcan]&quot;</div>
+                  <div className="text-zinc-500 mt-1"># Verify version:</div>
+                  <div className="text-cyan-400">python3 -c &quot;import can; print(can.__version__)&quot;</div>
+                </div>
+              )}
             </div>
           )}
 

@@ -16,6 +16,7 @@ import {
   Send,
   Radio,
   CheckCircle2,
+  Archive,
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -270,23 +271,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* Quick Nav Cards */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
+            <button
+              onClick={() => onNavigate('history')}
+              className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
+            >
+              <Archive className="w-4 h-4 text-cyan-400 mb-2 group-hover:scale-110 transition" />
+              <div className="font-semibold text-zinc-200 text-xs">IndexedDB</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">6-month cache</div>
+            </button>
+
             <button
               onClick={() => onNavigate('dbc')}
-              className="p-3.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
+              className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
             >
               <Database className="w-4 h-4 text-emerald-400 mb-2 group-hover:scale-110 transition" />
               <div className="font-semibold text-zinc-200 text-xs">DBC Decoder</div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">Decode signals & units</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">Decode signals</div>
             </button>
 
             <button
               onClick={() => onNavigate('transmit')}
-              className="p-3.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
+              className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
             >
               <Send className="w-4 h-4 text-amber-400 mb-2 group-hover:scale-110 transition" />
               <div className="font-semibold text-zinc-200 text-xs">Transmit</div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">Send periodic frames</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">Periodic frames</div>
             </button>
           </div>
         </div>

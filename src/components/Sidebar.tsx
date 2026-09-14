@@ -5,6 +5,7 @@ import {
   ListOrdered,
   LineChart,
   HardDriveDownload,
+  Archive,
   Database,
   Send,
   AlertOctagon,
@@ -19,6 +20,7 @@ export type NavPage =
   | 'messages'
   | 'graphs'
   | 'logging'
+  | 'history'
   | 'dbc'
   | 'transmit'
   | 'errors'
@@ -45,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'messages', label: 'Messages', icon: <ListOrdered className="w-4 h-4 shrink-0" /> },
     { id: 'graphs', label: 'Graphs', icon: <LineChart className="w-4 h-4 shrink-0" /> },
     { id: 'logging', label: 'Logging', icon: <HardDriveDownload className="w-4 h-4 shrink-0" /> },
+    { id: 'history', label: 'History Cache', icon: <Archive className="w-4 h-4 shrink-0" /> },
     { id: 'dbc', label: 'DBC Decoder', icon: <Database className="w-4 h-4 shrink-0" /> },
     { id: 'transmit', label: 'Transmit', icon: <Send className="w-4 h-4 shrink-0" /> },
     {

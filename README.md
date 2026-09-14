@@ -87,7 +87,20 @@ python main.py
 6. In CANScope, open **Connection Settings**, select **SocketCAN**, choose `can0`, and click **Connect**.
 
 ### macOS + PCAN-USB
-1. Install the official PEAK PCAN-Basic driver or MacCAN library for macOS.
+
+#### 1. macOS Python Virtual Environment & python-can[pcan] Installation:
+Run the following commands in Terminal to install `python-can` with PCAN dynamic driver support:
+
+```bash
+python3 --version
+python3 -m venv ~/canscope-venv
+source ~/canscope-venv/bin/activate
+python3 -m pip install -U "python-can[pcan]"
+python3 -c "import can; print(can.__version__)"
+```
+
+#### 2. Hardware Driver & Connection:
+1. Install the official PEAK PCAN-Basic driver or MacCAN library (`libPCBUsb.dylib` / `PCBUSB.framework`) for macOS.
 2. Connect your PCAN-USB adapter to an available USB port.
 3. In CANScope, open **Connection Settings**, select **PCAN**, select the discovered channel (e.g. `PCAN_USBBUS1`), and click **Connect**.
 4. If no driver is installed, CANScope will clearly inform you with diagnostic guidance and allow instant fallback to **Simulation Mode**.

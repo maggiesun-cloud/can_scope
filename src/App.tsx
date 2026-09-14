@@ -13,6 +13,7 @@ import { MonitorPage } from './pages/MonitorPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { GraphsPage } from './pages/GraphsPage';
 import { LoggingPage } from './pages/LoggingPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { DbcPage } from './pages/DbcPage';
 import { TransmitPage } from './pages/TransmitPage';
 import { ErrorsPage } from './pages/ErrorsPage';
@@ -34,6 +35,8 @@ export function App() {
     setSelectedFrame,
     clearFrames,
     togglePause,
+    saveSnifferToIndexedDb,
+    loadHistoricalFrames,
     handleConnect,
     handleDisconnect,
     handleToggleRecording,
@@ -104,6 +107,8 @@ export function App() {
               onSelectFrame={setSelectedFrame}
               maxLimit={maxDisplayLimit}
               onSetMaxLimit={setMaxDisplayLimit}
+              onSaveToIndexedDb={() => saveSnifferToIndexedDb()}
+              onOpenHistory={() => setCurrentPage('history')}
             />
           )}
 
@@ -131,6 +136,18 @@ export function App() {
               onToggleRecording={handleToggleRecording}
               frames={frames}
               onClear={clearFrames}
+              onSaveToIndexedDb={saveSnifferToIndexedDb}
+              onNavigateToHistory={() => setCurrentPage('history')}
+            />
+          )}
+
+          {currentPage === 'history' && (
+            <HistoryPage
+              currentBufferFrames={frames}
+              onLoadSessionIntoMonitor={loadHistoricalFrames}
+              onSaveCurrentBuffer={saveSnifferToIndexedDb}
+              onNavigateToMonitor={() => setCurrentPage('monitor')}
+              activeDbc={activeDbc}
             />
           )}
 

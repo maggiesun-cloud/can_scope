@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SystemInfo, BusStatus } from '../types/can';
-import { Cpu, CheckCircle2, XCircle, AlertTriangle, Terminal, HardDrive, Info } from 'lucide-react';
+import {
+  Cpu,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Terminal,
+  HardDrive,
+  Info,
+  Copy,
+  Check,
+  Apple,
+} from 'lucide-react';
 
 interface SettingsPageProps {
   systemInfo: SystemInfo | null;
@@ -8,6 +19,29 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ systemInfo, status }) => {
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedLine, setCopiedLine] = useState<string | null>(null);
+
+  const macOsCommands = [
+    'python3 --version',
+    'python3 -m venv ~/canscope-venv',
+    'source ~/canscope-venv/bin/activate',
+    'python3 -m pip install -U "python-can[pcan]"',
+    'python3 -c "import can; print(can.__version__)"',
+  ];
+
+  const handleCopyAll = () => {
+    const script = macOsCommands.join('\n');
+    navigator.clipboard.writeText(script);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2500);
+  };
+
+  const handleCopyLine = (cmd: string) => {
+    navigator.clipboard.writeText(cmd);
+    setCopiedLine(cmd);
+    setTimeout(() => setCopiedLine(null), 2000);
+  };
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full text-zinc-200">
       <div>
@@ -150,22 +184,146 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ systemInfo, status }
           </div>
         </div>
 
-        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-2">
-          <div className="flex items-center space-x-2 font-bold text-zinc-100">
-            <Info className="w-4 h-4 text-emerald-400" />
-            <span>macOS PCAN-USB Setup</span>
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 font-bold text-zinc-100">
+              <Apple className="w-4 h-4 text-zinc-200" />
+              <span>macOS Installation & PCAN-USB Setup</span>
+            </div>
+            <button
+              onClick={handleCopyAll}
+              className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer border ${
+                copiedAll
+                  ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
+              }`}
+              title="Copy all commands to clipboard"
+            >
+              {copiedAll ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Copied All!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Copy Commands</span>
+                </>
+              )}
+            </button>
           </div>
-          <p className="text-zinc-400 leading-relaxed">
-            macOS does not have kernel-native SocketCAN. To use PCAN-USB:
+
+          <p className="text-zinc-400 leading-relaxed text-xs">
+            macOS does not have kernel-native SocketCAN. Run these commands in Terminal to configure a Python virtual environment with full PCAN hardware driver support:
           </p>
-          <ul className="list-disc list-inside space-y-1 text-zinc-300 leading-relaxed">
-            <li>Install the MacCAN library or official PEAK PCANBasic package.</li>
-            <li>Connect your PCAN-USB adapter to a USB 2.0/3.0 port.</li>
-            <li>
-              CANScope dynamically identifies <code className="text-cyan-400 font-mono">PCAN_USBBUS1</code>{' '}
-              without hardcoded path assumptions.
-            </li>
-          </ul>
+
+          <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 font-mono text-[11px] text-zinc-300 space-y-2">
+            <div className="flex items-center justify-between group py-0.5">
+              <div>
+                <span className="text-zinc-500 select-none mr-2"># 1. Check Python version</span>
+                <div className="text-cyan-400">python3 --version</div>
+              </div>
+              <button
+                onClick={() => handleCopyLine('python3 --version')}
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-cyan-300 p-1 rounded transition cursor-pointer"
+                title="Copy command"
+              >
+                {copiedLine === 'python3 --version' ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between group py-0.5">
+              <div>
+                <span className="text-zinc-500 select-none mr-2"># 2. Create dedicated virtual environment</span>
+                <div className="text-cyan-400">python3 -m venv ~/canscope-venv</div>
+              </div>
+              <button
+                onClick={() => handleCopyLine('python3 -m venv ~/canscope-venv')}
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-cyan-300 p-1 rounded transition cursor-pointer"
+                title="Copy command"
+              >
+                {copiedLine === 'python3 -m venv ~/canscope-venv' ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between group py-0.5">
+              <div>
+                <span className="text-zinc-500 select-none mr-2"># 3. Activate virtual environment</span>
+                <div className="text-cyan-400">source ~/canscope-venv/bin/activate</div>
+              </div>
+              <button
+                onClick={() => handleCopyLine('source ~/canscope-venv/bin/activate')}
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-cyan-300 p-1 rounded transition cursor-pointer"
+                title="Copy command"
+              >
+                {copiedLine === 'source ~/canscope-venv/bin/activate' ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between group py-0.5">
+              <div>
+                <span className="text-zinc-500 select-none mr-2"># 4. Install python-can with PCAN-USB extras</span>
+                <div className="text-emerald-400 font-semibold">python3 -m pip install -U &quot;python-can[pcan]&quot;</div>
+              </div>
+              <button
+                onClick={() => handleCopyLine('python3 -m pip install -U "python-can[pcan]"')}
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-cyan-300 p-1 rounded transition cursor-pointer"
+                title="Copy command"
+              >
+                {copiedLine === 'python3 -m pip install -U "python-can[pcan]"' ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between group py-0.5">
+              <div>
+                <span className="text-zinc-500 select-none mr-2"># 5. Verify import & library version</span>
+                <div className="text-cyan-400">python3 -c &quot;import can; print(can.__version__)&quot;</div>
+              </div>
+              <button
+                onClick={() => handleCopyLine('python3 -c "import can; print(can.__version__)"')}
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-cyan-300 p-1 rounded transition cursor-pointer"
+                title="Copy command"
+              >
+                {copiedLine === 'python3 -c "import can; print(can.__version__)"' ? (
+                  <Check className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-zinc-400 space-y-1 pt-1 border-t border-zinc-800/80">
+            <div className="flex items-center space-x-1.5 text-zinc-300">
+              <Info className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>Hardware Driver Requirement:</span>
+            </div>
+            <ul className="list-disc list-inside space-y-0.5 text-zinc-400 pl-1">
+              <li>
+                Install MacCAN or PEAK PCANBasic library (<code className="text-cyan-300 font-mono text-[10px]">/Library/Frameworks/PCBUSB.framework</code> or <code className="text-cyan-300 font-mono text-[10px]">libpcanbasic.dylib</code>).
+              </li>
+              <li>Connect your PEAK PCAN-USB or PCAN-USB Pro adapter.</li>
+              <li>
+                CANScope auto-binds to channel <code className="text-cyan-300 font-mono text-[10px]">PCAN_USBBUS1</code> with dynamic device discovery.
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

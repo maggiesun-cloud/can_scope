@@ -174,3 +174,57 @@ export interface GraphSeriesConfig {
   signalName?: string;
   unit?: string;
 }
+
+export interface SnifferSessionMeta {
+  id: string;
+  name: string;
+  timestamp: number; // Unix timestamp in ms
+  dateStr: string; // YYYY-MM-DD
+  channel: string;
+  bitrate: number;
+  protocol: 'classic' | 'fd' | 'mixed';
+  frameCount: number;
+  uniqueCanIds: number[];
+  uniqueCanIdsHex: string[];
+  durationSeconds: number;
+  sizeBytes: number;
+  notes?: string;
+  tags?: string[];
+  expiresAt: number; // Unix timestamp in ms (6 months by default)
+  isAutoSaved?: boolean;
+}
+
+export interface SnifferSessionWithFrames extends SnifferSessionMeta {
+  frames: CanFrame[];
+}
+
+export interface SnifferHistoryFilter {
+  searchQuery?: string;
+  canId?: string | number;
+  dateRangePreset?: 'all' | 'today' | 'yesterday' | '7d' | '30d' | '90d' | '180d' | 'custom';
+  startDate?: string;
+  endDate?: string;
+  channel?: string;
+  protocol?: 'all' | 'classic' | 'fd' | 'mixed';
+  sortBy?: 'timestamp_desc' | 'timestamp_asc' | 'frames_desc' | 'size_desc';
+}
+
+export interface IndexedDbStorageStats {
+  sessionCount: number;
+  totalFrames: number;
+  totalEstimatedBytes: number;
+  oldestTimestamp: number | null;
+  newestTimestamp: number | null;
+  browserStorageEstimate?: {
+    usageBytes: number;
+    quotaBytes: number;
+  };
+}
+
+export interface IndexedDbSettings {
+  autoSaveEnabled: boolean;
+  retentionMonths: number; // default: 6
+  autoSaveIntervalFrames: number;
+  autoSaveOnPause: boolean;
+  autoSaveOnClear: boolean;
+}

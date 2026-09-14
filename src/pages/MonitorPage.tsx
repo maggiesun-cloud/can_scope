@@ -12,6 +12,9 @@ import {
   Eye,
   Settings2,
   SlidersHorizontal,
+  Archive,
+  Clock,
+  Save,
 } from 'lucide-react';
 
 interface MonitorPageProps {
@@ -22,6 +25,8 @@ interface MonitorPageProps {
   onSelectFrame: (frame: CanFrame) => void;
   maxLimit: number;
   onSetMaxLimit: (limit: number) => void;
+  onSaveToIndexedDb?: () => void;
+  onOpenHistory?: () => void;
 }
 
 export const MonitorPage: React.FC<MonitorPageProps> = ({
@@ -32,6 +37,8 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
   onSelectFrame,
   maxLimit,
   onSetMaxLimit,
+  onSaveToIndexedDb,
+  onOpenHistory,
 }) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [timeMode, setTimeMode] = useState<'relative' | 'absolute'>('relative');
@@ -245,6 +252,29 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
               <option value={50000}>50,000</option>
             </select>
           </div>
+
+          {onSaveToIndexedDb && (
+            <button
+              onClick={onSaveToIndexedDb}
+              disabled={frames.length === 0}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-cyan-950/80 hover:bg-cyan-900 disabled:opacity-40 text-cyan-300 border border-cyan-700/60 transition cursor-pointer"
+              title="Save current sniffer cache to IndexedDB (6-Month Retention)"
+            >
+              <Archive className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Save Cache</span>
+            </button>
+          )}
+
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition cursor-pointer"
+              title="Search & view historical CAN sniffer captures in IndexedDB"
+            >
+              <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <span>History</span>
+            </button>
+          )}
 
           <button
             onClick={handleExportCsv}
