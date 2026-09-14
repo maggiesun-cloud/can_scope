@@ -6,6 +6,7 @@ import { Sidebar, NavPage } from './components/Sidebar';
 import { ConnectionModal } from './components/ConnectionModal';
 import { FrameDetailsModal } from './components/FrameDetailsModal';
 import { ToastContainer } from './components/ToastContainer';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 // Pages
 import { DashboardPage } from './pages/DashboardPage';
@@ -202,6 +203,7 @@ export function App() {
         onClose={() => setSelectedFrame(null)}
       />
 
+      <OfflineIndicator />
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );

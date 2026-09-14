@@ -14,7 +14,12 @@ import {
   BookOpen,
   FileText,
   X,
+  Monitor,
+  Download,
+  Laptop,
 } from 'lucide-react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
+import { InstallModal } from '../components/InstallModal';
 
 interface SettingsPageProps {
   systemInfo: SystemInfo | null;
@@ -27,6 +32,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ systemInfo, status }
   const [copiedDiag, setCopiedDiag] = useState(false);
   const [diagInput, setDiagInput] = useState('');
   const [showDocModal, setShowDocModal] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const { isInstallable, isInstalled, install } = usePWAInstall();
 
   const macOsCommands = [
     'python3 --version',
@@ -466,6 +473,91 @@ print(f"PCAN_DYLIB={libs[0] if libs else \\"NOT_FOUND\\"}")
           </div>
         )}
       </div>
+
+      {/* Desktop Application & Offline Installation (PWA) */}
+      <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <Monitor className="w-5 h-5 text-cyan-400" />
+            <div>
+              <h3 className="font-bold text-zinc-100 text-sm">Desktop Application & Offline Installation (PWA)</h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Install CANScope as an independent desktop software application on macOS, Windows, or Linux
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            {isInstalled ? (
+              <span className="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 text-xs font-semibold flex items-center space-x-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Installed (Standalone)</span>
+              </span>
+            ) : isInstallable ? (
+              <button
+                onClick={install}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition active:scale-95 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Install to Desktop</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowInstallModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center space-x-1.5 border border-zinc-700 transition active:scale-95 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Install Options</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 bg-zinc-950 border border-zinc-800/80 rounded-lg space-y-1.5">
+            <div className="font-semibold text-zinc-200 flex items-center space-x-1.5">
+              <Laptop className="w-4 h-4 text-cyan-400" />
+              <span>Native Window Shell</span>
+            </div>
+            <p className="text-zinc-400 text-[11px] leading-relaxed">
+              Runs in its own borderless window without browser URL tabs or navigation chrome, maximizing screen area for high-density CAN data tables and dual-axis graphs.
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-zinc-950 border border-zinc-800/80 rounded-lg space-y-1.5">
+            <div className="font-semibold text-zinc-200 flex items-center space-x-1.5">
+              <HardDrive className="w-4 h-4 text-emerald-400" />
+              <span>100% Offline Trace Replay</span>
+            </div>
+            <p className="text-zinc-400 text-[11px] leading-relaxed">
+              Fully caches application code, DBC signal decoders, and historical traces in IndexedDB. Launch from dock/taskbar even without internet connectivity.
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-zinc-950 border border-zinc-800/80 rounded-lg space-y-1.5">
+            <div className="font-semibold text-zinc-200 flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-blue-400" />
+              <span>OS Dock & Taskbar</span>
+            </div>
+            <p className="text-zinc-400 text-[11px] leading-relaxed">
+              Quickly launch via macOS Spotlight / Launchpad, Windows Start Menu, or Linux Application Drawer with the high-resolution CANScope icon.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2 flex items-center justify-between border-t border-zinc-800/60 text-xs">
+          <span className="text-zinc-500 font-mono text-[11px]">STATUS: {isInstalled ? 'STANDALONE WINDOW ACTIVE' : isInstallable ? 'BROWSER INSTALL TRIGGER READY' : 'BROWSER PWA CAPABLE'}</span>
+          <button
+            onClick={() => setShowInstallModal(true)}
+            className="text-cyan-400 hover:text-cyan-300 font-medium text-xs flex items-center space-x-1 cursor-pointer"
+          >
+            <span>View installation steps for your browser</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </div>
+
+      <InstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
 
       {/* Full macOS Setup Documentation Modal */}
       {showDocModal && (

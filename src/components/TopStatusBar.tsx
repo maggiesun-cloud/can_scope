@@ -11,6 +11,7 @@ import {
   Gauge,
   SlidersHorizontal,
 } from 'lucide-react';
+import { DesktopInstallButton } from './DesktopInstallButton';
 
 interface TopStatusBarProps {
   status: BusStatus;
@@ -171,6 +172,8 @@ export const TopStatusBar: React.FC<TopStatusBarProps> = ({
 
       {/* Right: Quick Action Controls */}
       <div className="flex items-center space-x-2">
+        <DesktopInstallButton />
+
         {isConnected ? (
           <button
             onClick={onDisconnect}
