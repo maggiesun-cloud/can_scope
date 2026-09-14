@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DbcDatabase, DbcMessage } from '../types/can';
-import { decodeFrameWithDbc } from '../utils/dbc';
+import { decodeFrameWithDbc, exportDbcAsJson, SAMPLE_JSON_DBC } from '../utils/dbc';
+import { VisualSchemaEditor } from '../components/VisualSchemaEditor';
 import {
   Database,
   Upload,
@@ -10,14 +11,24 @@ import {
   ChevronRight,
   Calculator,
   Search,
+  BookOpen,
+  Download,
+  Code2,
+  Check,
+  Copy,
+  Sparkles,
+  ArrowRight,
+  Sliders,
 } from 'lucide-react';
 
 interface DbcPageProps {
   activeDbc: DbcDatabase | null;
   onLoadDbc: (content: string, filename: string) => Promise<boolean>;
+  onNavigateToDocs?: () => void;
 }
 
-export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
+export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc, onNavigateToDocs }) => {
+  const [viewTab, setViewTab] = useState<'visual_editor' | 'catalog'>('visual_editor');
   const [expandedMessageId, setExpandedMessageId] = useState<number | null>(0x100);
   const [search, setSearch] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -26,6 +37,23 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
   const [testCanId, setTestCanId] = useState('0x100');
   const [testHexData, setTestHexData] = useState('0F 00 40 1F 78 80 00 00');
   const [decodedTestResults, setDecodedTestResults] = useState<Record<string, string | number> | null>(null);
+
+  // In-app JSON Editor state
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [jsonContent, setJsonContent] = useState<string>(SAMPLE_JSON_DBC);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [copiedJson, setCopiedJson] = useState(false);
+
+  // Sync active DBC to JSON editor if available
+  useEffect(() => {
+    if (activeDbc && !showJsonEditor) {
+      try {
+        setJsonContent(exportDbcAsJson(activeDbc));
+      } catch {
+        // keep fallback
+      }
+    }
+  }, [activeDbc, showJsonEditor]);
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
@@ -47,7 +75,9 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
   };
 
   const handleTestDecode = () => {
-    const cleanId = testCanId.startsWith('0x') ? parseInt(testCanId, 16) : parseInt(testCanId, 10);
+    const cleanId = testCanId.startsWith('0x') || testCanId.startsWith('0X')
+      ? parseInt(testCanId, 16)
+      : parseInt(testCanId, 10);
     const bytes = testHexData
       .trim()
       .split(/[\s,]+/)
@@ -58,6 +88,38 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
     setDecodedTestResults(result);
   };
 
+  const handleApplyJson = async () => {
+    setJsonError(null);
+    try {
+      JSON.parse(jsonContent); // syntax validation check
+      const success = await onLoadDbc(jsonContent, 'custom_can_schema.json');
+      if (success) {
+        setShowJsonEditor(false);
+      }
+    } catch (err: any) {
+      setJsonError(err.message || 'Invalid JSON syntax');
+    }
+  };
+
+  const handleDownloadCurrentJson = () => {
+    const content = activeDbc ? exportDbcAsJson(activeDbc) : jsonContent;
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = activeDbc ? `${activeDbc.filename.replace(/\.[^/.]+$/, '')}.json` : 'custom_can_dbc.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(jsonContent);
+    setCopiedJson(true);
+    setTimeout(() => setCopiedJson(false), 2000);
+  };
+
   const filteredMessages = (activeDbc?.messages || []).filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -65,32 +127,194 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
   );
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full text-zinc-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-bold text-zinc-100 flex items-center space-x-2">
-            <Database className="w-5 h-5 text-emerald-400" />
-            <span>CAN DBC Database & Signal Decoder</span>
-          </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Load Vector .dbc definitions to translate raw hexadecimal frames into engineering physical values
-          </p>
+    <div className="flex flex-col h-full overflow-hidden text-zinc-200">
+      {/* Top Main Navigation Bar */}
+      <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-700/80 flex items-center justify-center">
+            <Database className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-sm font-bold text-zinc-100">CAN DBC & Custom Schema Decoder</h2>
+              {activeDbc && (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-800 text-emerald-300 font-mono">
+                  {activeDbc.messages.length} messages loaded
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-zinc-400">
+              Create, visually edit, or upload Vector <code className="text-zinc-300 font-mono text-[10px]">.dbc</code> & custom <code className="text-zinc-300 font-mono text-[10px]">.json</code> schemas for real-time decoding
+            </p>
+          </div>
         </div>
 
-        {/* Upload Button */}
-        <label className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-lg text-xs font-semibold flex items-center space-x-2 transition cursor-pointer shrink-0">
-          <Upload className="w-4 h-4 text-emerald-400" />
-          <span>Upload Custom DBC</span>
-          <input
-            type="file"
-            accept=".dbc"
-            className="hidden"
-            onChange={(e) => e.target.files && e.target.files[0] && handleFileUpload(e.target.files[0])}
-          />
-        </label>
+        {/* View Mode Tabs & Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-zinc-900 p-0.5 rounded-lg border border-zinc-800 flex items-center text-xs font-mono">
+            <button
+              onClick={() => setViewTab('visual_editor')}
+              className={`px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition cursor-pointer ${
+                viewTab === 'visual_editor'
+                  ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Visual Schema Editor</span>
+            </button>
+            <button
+              onClick={() => setViewTab('catalog')}
+              className={`px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition cursor-pointer ${
+                viewTab === 'catalog'
+                  ? 'bg-zinc-800 text-cyan-400 font-bold shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Catalog &amp; Sandbox</span>
+            </button>
+          </div>
+
+          {onNavigateToDocs && (
+            <button
+              onClick={onNavigateToDocs}
+              className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
+              title="Open documentation guide"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Guides</span>
+            </button>
+          )}
+
+          <label className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm">
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload DBC / JSON</span>
+            <input
+              type="file"
+              accept=".dbc,.json,application/json"
+              className="hidden"
+              onChange={(e) => e.target.files && e.target.files[0] && handleFileUpload(e.target.files[0])}
+            />
+          </label>
+        </div>
       </div>
 
-      {/* Drag and drop banner */}
+      {/* Main Content Area */}
+      {viewTab === 'visual_editor' ? (
+        <div className="flex-1 overflow-hidden">
+          <VisualSchemaEditor
+            initialDatabase={activeDbc}
+            onApplySchema={async (db) => {
+              const jsonStr = exportDbcAsJson(db);
+              await onLoadDbc(jsonStr, db.filename);
+            }}
+            onNavigateToDocs={onNavigateToDocs}
+          />
+        </div>
+      ) : (
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 text-zinc-200">
+          {/* Action Row for Catalog view */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setViewTab('visual_editor')}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer shadow-sm"
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Open Visual Schema Designer</span>
+              </button>
+              <button
+                onClick={() => setShowJsonEditor(!showJsonEditor)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer border ${
+                  showJsonEditor
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border-zinc-700/80'
+                }`}
+              >
+                <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{showJsonEditor ? 'Hide JSON Editor' : 'Edit / View Raw JSON'}</span>
+              </button>
+            </div>
+
+            {activeDbc && (
+              <button
+                onClick={handleDownloadCurrentJson}
+                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Export Active as JSON</span>
+              </button>
+            )}
+          </div>
+
+      {/* In-App JSON Editor Panel */}
+      {showJsonEditor && (
+        <div className="p-5 bg-zinc-900 border border-zinc-700 rounded-2xl space-y-3 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Code2 className="w-4 h-4 text-emerald-400" />
+              <span className="font-bold text-xs text-zinc-100">Live JSON Schema Editor</span>
+              <span className="text-[10px] text-zinc-500 font-mono bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
+                Direct Schema Ingestion
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setJsonContent(SAMPLE_JSON_DBC)}
+                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] rounded font-semibold transition cursor-pointer flex items-center space-x-1"
+                title="Reset to sample vehicle & BMS schema"
+              >
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <span>Load Sample</span>
+              </button>
+              <button
+                onClick={handleCopyJson}
+                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] rounded font-semibold transition cursor-pointer flex items-center space-x-1"
+              >
+                {copiedJson ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-zinc-400" />}
+                <span>{copiedJson ? 'Copied' : 'Copy'}</span>
+              </button>
+              <button
+                onClick={handleDownloadCurrentJson}
+                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] rounded font-semibold transition cursor-pointer flex items-center space-x-1"
+              >
+                <Download className="w-3 h-3 text-emerald-400" />
+                <span>Export .json</span>
+              </button>
+              <button
+                onClick={handleApplyJson}
+                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition cursor-pointer shadow-sm"
+              >
+                Apply to Decoder
+              </button>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-zinc-400 leading-relaxed">
+            Paste or edit your custom CAN message definitions below. Support hex IDs like <code className="text-cyan-300 font-mono">&quot;0x123&quot;</code> and signal properties like <code className="text-zinc-300 font-mono">startBit</code>, <code className="text-zinc-300 font-mono">length</code>, <code className="text-zinc-300 font-mono">scale</code>, <code className="text-zinc-300 font-mono">offset</code>, and <code className="text-zinc-300 font-mono">unit</code>.
+          </p>
+
+          {jsonError && (
+            <div className="p-2.5 bg-rose-950/60 border border-rose-800 text-rose-300 rounded text-xs font-mono">
+              Syntax Error: {jsonError}
+            </div>
+          )}
+
+          <textarea
+            value={jsonContent}
+            onChange={(e) => {
+              setJsonContent(e.target.value);
+              setJsonError(null);
+            }}
+            rows={14}
+            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 rounded-xl font-mono text-xs text-zinc-200 focus:outline-none focus:border-emerald-700 leading-relaxed resize-y"
+            placeholder="Paste custom JSON DBC structure here..."
+          />
+        </div>
+      )}
+
+      {/* Drag and Drop Banner */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -106,10 +330,14 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
       >
         <FileCode className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-80" />
         <div className="text-xs font-semibold text-zinc-200">
-          Drop your Vector .dbc file here or click Upload above
+          Drop your Vector .dbc or custom .json file here, or click Upload above
         </div>
-        <div className="text-[11px] text-zinc-500 mt-1">
-          Supports Intel (little-endian) and Motorola (big-endian) signed/unsigned signals
+        <div className="text-[11px] text-zinc-500 mt-1 flex items-center justify-center space-x-2">
+          <span>Supports Vector DBC (.dbc)</span>
+          <span>•</span>
+          <span>Supports Custom JSON (.json)</span>
+          <span>•</span>
+          <span>Intel &amp; Motorola Byte Orders</span>
         </div>
       </div>
 
@@ -119,8 +347,13 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
           <div className="flex items-center space-x-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             <div>
-              <span className="font-bold text-zinc-100 font-sans">{activeDbc.filename}</span>
-              <div className="text-zinc-500 text-[11px]">Active CAN Database</div>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-zinc-100 font-sans">{activeDbc.filename}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono uppercase">
+                  {activeDbc.filename.toLowerCase().endsWith('.json') ? 'JSON Schema' : 'Vector DBC'}
+                </span>
+              </div>
+              <div className="text-zinc-500 text-[11px]">Active CAN Database & Signal Decoder</div>
             </div>
           </div>
 
@@ -134,6 +367,14 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
                 {activeDbc.messages.reduce((acc, m) => acc + m.signals.length, 0)}
               </strong>
             </div>
+            <button
+              onClick={handleDownloadCurrentJson}
+              className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-[11px] flex items-center space-x-1 cursor-pointer transition"
+              title="Download active database in clean JSON format"
+            >
+              <Download className="w-3 h-3 text-emerald-400" />
+              <span>Export JSON</span>
+            </button>
           </div>
         </div>
       )}
@@ -145,7 +386,7 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
           <span>Interactive Signal Decoder Sandbox</span>
         </div>
         <p className="text-[11px] text-zinc-400">
-          Enter a CAN ID and payload to verify signal formula decoding against the loaded DBC
+          Enter a CAN ID and payload to verify signal formula decoding against the loaded database
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -185,7 +426,7 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
             <div className="text-[11px] font-semibold text-zinc-400 mb-2">Decoded Results:</div>
             {Object.keys(decodedTestResults).length === 0 ? (
               <span className="text-zinc-500 text-xs italic">
-                No signals found for ID {testCanId} in the active DBC.
+                No signals found for ID {testCanId} in the active database.
               </span>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -204,7 +445,7 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
       {/* Message & Signal Catalog */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-          <h3 className="font-bold text-zinc-100 text-sm">DBC Message Catalog</h3>
+          <h3 className="font-bold text-zinc-100 text-sm">Active Message & Signal Catalog</h3>
           <div className="relative w-64">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
             <input
@@ -243,6 +484,7 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
                       </div>
                       <div className="text-[10px] text-zinc-500 font-mono mt-0.5">
                         Transmitter: {msg.transmitter} • DLC: {msg.dlc} bytes
+                        {msg.comment && <span className="text-zinc-400 ml-2 font-sans italic">— {msg.comment}</span>}
                       </div>
                     </div>
                   </div>
@@ -294,6 +536,9 @@ export const DbcPage: React.FC<DbcPageProps> = ({ activeDbc, onLoadDbc }) => {
           })}
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 };
+

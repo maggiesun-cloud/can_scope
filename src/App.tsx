@@ -18,6 +18,7 @@ import { DbcPage } from './pages/DbcPage';
 import { TransmitPage } from './pages/TransmitPage';
 import { ErrorsPage } from './pages/ErrorsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DocsPage } from './pages/DocsPage';
 
 export function App() {
   const {
@@ -152,7 +153,11 @@ export function App() {
           )}
 
           {currentPage === 'dbc' && (
-            <DbcPage activeDbc={activeDbc} onLoadDbc={handleLoadDbc} />
+            <DbcPage
+              activeDbc={activeDbc}
+              onLoadDbc={handleLoadDbc}
+              onNavigateToDocs={() => setCurrentPage('docs')}
+            />
           )}
 
           {currentPage === 'transmit' && (
@@ -165,6 +170,10 @@ export function App() {
 
           {currentPage === 'settings' && (
             <SettingsPage systemInfo={systemInfo} status={status} />
+          )}
+
+          {currentPage === 'docs' && (
+            <DocsPage onNavigateToDbc={() => setCurrentPage('dbc')} />
           )}
         </main>
       </div>

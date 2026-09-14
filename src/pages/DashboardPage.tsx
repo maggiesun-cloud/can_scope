@@ -17,6 +17,7 @@ import {
   Radio,
   CheckCircle2,
   Archive,
+  BookOpen,
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -271,7 +272,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
 
           {/* Quick Nav Cards */}
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <button
               onClick={() => onNavigate('history')}
               className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
@@ -286,7 +287,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
             >
               <Database className="w-4 h-4 text-emerald-400 mb-2 group-hover:scale-110 transition" />
-              <div className="font-semibold text-zinc-200 text-xs">DBC Decoder</div>
+              <div className="font-semibold text-zinc-200 text-xs">DBC / JSON</div>
               <div className="text-[10px] text-zinc-500 mt-0.5">Decode signals</div>
             </button>
 
@@ -297,6 +298,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <Send className="w-4 h-4 text-amber-400 mb-2 group-hover:scale-110 transition" />
               <div className="font-semibold text-zinc-200 text-xs">Transmit</div>
               <div className="text-[10px] text-zinc-500 mt-0.5">Periodic frames</div>
+            </button>
+
+            <button
+              onClick={() => onNavigate('docs')}
+              className="p-3 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 rounded-xl text-left transition group cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4 text-purple-400 mb-2 group-hover:scale-110 transition" />
+              <div className="font-semibold text-zinc-200 text-xs">Documents</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">Guides & specs</div>
             </button>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   Send,
   AlertOctagon,
   Cpu,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -24,7 +25,8 @@ export type NavPage =
   | 'dbc'
   | 'transmit'
   | 'errors'
-  | 'settings';
+  | 'settings'
+  | 'docs';
 
 interface SidebarProps {
   currentPage: NavPage;
@@ -48,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'graphs', label: 'Graphs', icon: <LineChart className="w-4 h-4 shrink-0" /> },
     { id: 'logging', label: 'Logging', icon: <HardDriveDownload className="w-4 h-4 shrink-0" /> },
     { id: 'history', label: 'History Cache', icon: <Archive className="w-4 h-4 shrink-0" /> },
-    { id: 'dbc', label: 'DBC Decoder', icon: <Database className="w-4 h-4 shrink-0" /> },
+    { id: 'dbc', label: 'DBC & Schema', icon: <Database className="w-4 h-4 shrink-0" /> },
     { id: 'transmit', label: 'Transmit', icon: <Send className="w-4 h-4 shrink-0" /> },
     {
       id: 'errors',
@@ -57,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: unreadErrorsCount > 0 ? unreadErrorsCount : undefined,
     },
     { id: 'settings', label: 'System & HW', icon: <Cpu className="w-4 h-4 shrink-0" /> },
+    { id: 'docs', label: 'Documents', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
   ];
 
   return (
