@@ -173,7 +173,12 @@ export function App() {
           )}
 
           {currentPage === 'docs' && (
-            <DocsPage onNavigateToDbc={() => setCurrentPage('dbc')} />
+            <DocsPage
+              onNavigateToDbc={() => setCurrentPage('dbc')}
+              onNavigateToMonitor={() => setCurrentPage('monitor')}
+              onNavigateToLogging={() => setCurrentPage('logging')}
+              onOpenConnect={() => setIsConfigModalOpen(true)}
+            />
           )}
         </main>
       </div>

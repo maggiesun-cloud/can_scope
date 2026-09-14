@@ -14,14 +14,24 @@ import {
   Info,
   Sparkles,
   Sliders,
+  Play,
+  Pause,
+  Trash2,
+  HardDriveDownload,
+  Radio,
+  SlidersHorizontal,
+  ShieldCheck,
 } from 'lucide-react';
 import { SAMPLE_JSON_DBC } from '../utils/dbc';
 
 interface DocsPageProps {
   onNavigateToDbc?: () => void;
+  onNavigateToMonitor?: () => void;
+  onNavigateToLogging?: () => void;
+  onOpenConnect?: () => void;
 }
 
-type DocId = 'json-dbc' | 'macos-pcan' | 'linux-socketcan' | 'architecture';
+type DocId = 'sniffer-guide' | 'json-dbc' | 'macos-pcan' | 'linux-socketcan' | 'architecture';
 
 interface DocItem {
   id: DocId;
@@ -31,8 +41,13 @@ interface DocItem {
   icon: React.ReactNode;
 }
 
-export const DocsPage: React.FC<DocsPageProps> = ({ onNavigateToDbc }) => {
-  const [activeDocId, setActiveDocId] = useState<DocId>('json-dbc');
+export const DocsPage: React.FC<DocsPageProps> = ({
+  onNavigateToDbc,
+  onNavigateToMonitor,
+  onNavigateToLogging,
+  onOpenConnect,
+}) => {
+  const [activeDocId, setActiveDocId] = useState<DocId>('sniffer-guide');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -55,6 +70,13 @@ export const DocsPage: React.FC<DocsPageProps> = ({ onNavigateToDbc }) => {
   };
 
   const docsList: DocItem[] = [
+    {
+      id: 'sniffer-guide',
+      title: 'Sniffer Operation & Controls',
+      category: 'User Guide',
+      description: 'How to start, pause, resume, clear, filter, and record live CAN traffic with shortcuts.',
+      icon: <Play className="w-4 h-4 text-emerald-400" />,
+    },
     {
       id: 'json-dbc',
       title: 'Custom CAN ID JSON DBC Guide',
@@ -164,6 +186,239 @@ export const DocsPage: React.FC<DocsPageProps> = ({ onNavigateToDbc }) => {
 
       {/* Main Document Reading Area */}
       <div className="flex-1 overflow-y-auto p-8 max-w-4xl space-y-8">
+        {activeDocId === 'sniffer-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>CANScope Sniffer Operation & Control Guide</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {onNavigateToMonitor && (
+                    <button
+                      onClick={onNavigateToMonitor}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer shadow-sm"
+                    >
+                      <Terminal className="w-3.5 h-3.5" />
+                      <span>Open Live Monitor</span>
+                    </button>
+                  )}
+                  {onOpenConnect && (
+                    <button
+                      onClick={onOpenConnect}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition cursor-pointer"
+                    >
+                      <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Configure Hardware</span>
+                    </button>
+                  )}
+                  {onNavigateToLogging && (
+                    <button
+                      onClick={onNavigateToLogging}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition cursor-pointer"
+                    >
+                      <HardDriveDownload className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Logging</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Learn how to start, pause, resume, stop, filter, and record real-time CAN and CAN-FD traffic. The CANScope sniffer combines a 60fps render buffer with background microsecond timestamping for automotive diagnostics.
+              </p>
+            </div>
+
+            {/* Quick Reference Keyboard Shortcuts Table */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-zinc-200 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span>Quick Sniffer Shortcuts & Hotkeys</span>
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">Global Hotkeys</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">Pause / Resume</div>
+                    <div className="text-[10px] text-zinc-500">Toggle live stream</div>
+                  </div>
+                  <kbd className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-cyan-300 font-bold shadow-sm">
+                    Space
+                  </kbd>
+                </div>
+
+                <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">Clear Buffer</div>
+                    <div className="text-[10px] text-zinc-500">Wipe frame table</div>
+                  </div>
+                  <kbd className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-rose-300 font-bold shadow-sm">
+                    C
+                  </kbd>
+                </div>
+
+                <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">Record Session</div>
+                    <div className="text-[10px] text-zinc-500">Start/stop log capture</div>
+                  </div>
+                  <kbd className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-amber-300 font-bold shadow-sm">
+                    R
+                  </kbd>
+                </div>
+
+                <div className="p-3 bg-zinc-950 border border-zinc-800/90 rounded-lg flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">Close / Dismiss</div>
+                    <div className="text-[10px] text-zinc-500">Close dialogs & popups</div>
+                  </div>
+                  <kbd className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-zinc-400 font-bold shadow-sm">
+                    Esc
+                  </kbd>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 1: Pause & Resume */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
+                <Pause className="w-4 h-4 fill-current" />
+                <span>1. Pause & Resume the Live View (Inspection Mode)</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                When monitoring a high-traffic bus (e.g. 500 kbit/s or 2,000+ frames per second), incoming frames scroll past too rapidly to examine individual payloads. The sniffer provides an instantaneous view-freeze mechanism:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200 flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span>How to Pause:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li>Click the <strong className="text-amber-400">Pause</strong> button in the top-left toolbar of the <strong>Monitor</strong> tab.</li>
+                    <li>Or press the <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[11px] font-mono text-zinc-200 border border-zinc-700">Space</kbd> key anywhere in the app.</li>
+                    <li>Auto-scroll is paused and the display freezes at the current frame.</li>
+                  </ul>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200 flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span>Zero Data Loss in Background:</span>
+                  </div>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Pausing the view does <strong className="text-zinc-200">not</strong> disconnect the bus or drop incoming frames. The HAL ring buffer continues receiving and counting all frames in the background. When you press <strong className="text-emerald-400">Resume</strong> (or <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[11px] font-mono text-zinc-200 border border-zinc-700">Space</kbd>), the display seamlessly updates with the newest traffic.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Hardware Bus Connection */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <Radio className="w-4 h-4" />
+                <span>2. Starting & Stopping the CAN Bus Hardware Stream</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                To capture live frames from a vehicle OBD-II port, ECU test bench, or simulation harness, establish a hardware connection:
+              </p>
+              <div className="space-y-3 text-xs text-zinc-300">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200">Step-by-Step Connection Process:</div>
+                  <ol className="list-decimal list-inside text-zinc-400 space-y-1.5">
+                    <li>
+                      Click <strong className="text-emerald-400">Connect</strong> in the Top Status Bar or on the Dashboard.
+                    </li>
+                    <li>
+                      Select your driver backend:
+                      <ul className="list-disc list-inside pl-4 text-zinc-400 mt-1 space-y-0.5">
+                        <li><code className="text-cyan-300 font-mono">pcan</code>: PEAK-System USB adapters on Linux or macOS (<code className="text-zinc-300 font-mono">PCAN_USBBUS1</code>).</li>
+                        <li><code className="text-cyan-300 font-mono">socketcan</code>: Linux native kernel CAN interfaces (<code className="text-zinc-300 font-mono">can0</code>, <code className="text-zinc-300 font-mono">vcan0</code>).</li>
+                        <li><code className="text-cyan-300 font-mono">virtual</code>: Built-in simulated powertrain and sensor network (no hardware required).</li>
+                      </ul>
+                    </li>
+                    <li>Set the bus nominal bitrate (e.g., <code className="text-zinc-300 font-mono">500,000</code> bps).</li>
+                    <li>
+                      <span className="text-zinc-300 font-semibold">Listen-Only Mode: </span>
+                      Check this box for silent, passive monitoring. The controller will not acknowledge frames or transmit error frames, preventing unintended bus disruptions on production vehicle networks.
+                    </li>
+                    <li>Click <strong className="text-emerald-400">Connect Interface</strong>. The top status bar will illuminate green and frames will begin populating the sniffer.</li>
+                  </ol>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-semibold text-rose-300">How to Stop the Hardware Stream:</div>
+                  <p className="text-zinc-400">
+                    Click the red <strong className="text-rose-400">Disconnect</strong> button in the Top Status Bar. The backend will flush any pending transmission queues, close the driver handle, and release the USB/SocketCAN device cleanly.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Session Recording */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm">
+                <HardDriveDownload className="w-4 h-4" />
+                <span>3. Starting & Stopping Session Recording (Log Capture)</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                When you need to export trace files for external analysis in Vector CANoe, PCAN-View, Wireshark, or Python scripts:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200">Starting a Log Capture:</div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li>Navigate to the <strong>Logging</strong> page or press the <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[11px] font-mono text-zinc-200 border border-zinc-700">R</kbd> key.</li>
+                    <li>Select your target format: Vector BLF (<code className="text-zinc-300 font-mono">.blf</code>), Vector ASC (<code className="text-zinc-300 font-mono">.asc</code>), CSV (<code className="text-zinc-300 font-mono">.csv</code>), or PEAK TRC (<code className="text-zinc-300 font-mono">.trc</code>).</li>
+                    <li>Click <strong className="text-purple-400">Start Recording</strong>. The timer tracks capture duration and frame totals.</li>
+                  </ul>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200">Stopping & Saving:</div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li>Click <strong className="text-rose-400">Stop Recording</strong> or press <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-[11px] font-mono text-zinc-200 border border-zinc-700">R</kbd>.</li>
+                    <li>Click <strong className="text-emerald-400">Download Log</strong> to save the file locally.</li>
+                    <li>Click <strong className="text-cyan-400">Save to History</strong> to store the capture in your browser's persistent IndexedDB storage for offline replay.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 4: Sniffer Filtering & Search */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>4. Filtering & Search Controls</span>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Use the Monitor toolbar filters to isolate signals without stopping traffic:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                  <div className="font-bold text-zinc-200 mb-1">Direction Filter</div>
+                  <p className="text-zinc-500 text-[11px]">Filter between All, RX (received from bus), or TX (transmitted by CANScope).</p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                  <div className="font-bold text-zinc-200 mb-1">Protocol Filter</div>
+                  <p className="text-zinc-500 text-[11px]">Switch between Classic CAN (DLC ≤ 8) and CAN-FD (DLC up to 64 bytes).</p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                  <div className="font-bold text-zinc-200 mb-1">CAN ID Range</div>
+                  <p className="text-zinc-500 text-[11px]">Filter by numeric boundary (e.g. Min: <code className="text-cyan-300 font-mono">0x100</code>, Max: <code className="text-cyan-300 font-mono">0x200</code>).</p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                  <div className="font-bold text-zinc-200 mb-1">Live Search</div>
+                  <p className="text-zinc-500 text-[11px]">Instant text matching against CAN IDs, payload bytes (Hex), and DBC signal names.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeDocId === 'json-dbc' && (
           <div className="space-y-6">
             {/* Header Banner */}

@@ -174,3 +174,13 @@ Payload schema:
 - `R`: Start / Stop recording session
 - `F`: Focus ID and payload filter
 - `Esc`: Close open modal panels
+
+---
+
+## Documentation & Guides
+
+- **[Sniffer Operation & Controls Guide](docs/sniffer-guide.md)**: Detailed instructions on starting, pausing, resuming, clearing, filtering, and capturing CAN traffic.
+- **[Custom CAN JSON DBC Guide](docs/json-dbc-guide.md)**: Human-readable JSON schema specification for custom CAN ID signal decoding.
+- **[macOS & PCAN Setup](docs/macos-setup.md)**: Driver and hardware verification for PEAK-System USB adapters on macOS.
+- **[Architecture Overview](docs/architecture.md)**: Technical breakdown of the dual-thread HAL and WebSocket streaming pipeline.
+
