@@ -21,6 +21,14 @@ import {
   Radio,
   SlidersHorizontal,
   ShieldCheck,
+  Send,
+  LineChart,
+  Archive,
+  AlertOctagon,
+  Layers,
+  Activity,
+  Zap,
+  Clock,
 } from 'lucide-react';
 import { SAMPLE_JSON_DBC } from '../utils/dbc';
 
@@ -29,9 +37,24 @@ interface DocsPageProps {
   onNavigateToMonitor?: () => void;
   onNavigateToLogging?: () => void;
   onOpenConnect?: () => void;
+  onNavigateToTransmit?: () => void;
+  onNavigateToGraphs?: () => void;
+  onNavigateToHistory?: () => void;
+  onNavigateToErrors?: () => void;
+  onNavigateToMessages?: () => void;
 }
 
-type DocId = 'sniffer-guide' | 'json-dbc' | 'macos-pcan' | 'linux-socketcan' | 'architecture';
+type DocId =
+  | 'sniffer-guide'
+  | 'transmit-guide'
+  | 'graphs-guide'
+  | 'visual-schema-guide'
+  | 'json-dbc'
+  | 'history-guide'
+  | 'errors-guide'
+  | 'macos-pcan'
+  | 'linux-socketcan'
+  | 'architecture';
 
 interface DocItem {
   id: DocId;
@@ -46,6 +69,11 @@ export const DocsPage: React.FC<DocsPageProps> = ({
   onNavigateToMonitor,
   onNavigateToLogging,
   onOpenConnect,
+  onNavigateToTransmit,
+  onNavigateToGraphs,
+  onNavigateToHistory,
+  onNavigateToErrors,
+  onNavigateToMessages,
 }) => {
   const [activeDocId, setActiveDocId] = useState<DocId>('sniffer-guide');
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,11 +106,46 @@ export const DocsPage: React.FC<DocsPageProps> = ({
       icon: <Play className="w-4 h-4 text-emerald-400" />,
     },
     {
+      id: 'transmit-guide',
+      title: 'Transmit & Periodic Simulation',
+      category: 'User Guide',
+      description: 'Single-shot injection, cyclic periodic tasks, CAN-FD BRS, and diagnostic requests.',
+      icon: <Send className="w-4 h-4 text-cyan-400" />,
+    },
+    {
+      id: 'graphs-guide',
+      title: 'Signal Oscilloscope & Plotter',
+      category: 'Telemetry & Graphs',
+      description: 'Real-time multi-signal waveform plotting, time-window zoom, and physical units.',
+      icon: <LineChart className="w-4 h-4 text-purple-400" />,
+    },
+    {
+      id: 'visual-schema-guide',
+      title: 'Visual Schema Editor & Matrix',
+      category: 'Signal Decoding',
+      description: 'Interactive 64-bit payload allocation grid, collision detection, and Vector DBC export.',
+      icon: <Sliders className="w-4 h-4 text-amber-400" />,
+    },
+    {
       id: 'json-dbc',
       title: 'Custom CAN ID JSON DBC Guide',
       category: 'Signal Decoding',
       description: 'How to edit, format, upload, and auto-decode custom CAN IDs in human-readable JSON.',
       icon: <FileCode className="w-4 h-4 text-emerald-400" />,
+    },
+    {
+      id: 'history-guide',
+      title: 'Offline History Cache & Replay',
+      category: 'Data & Storage',
+      description: 'Browser-local IndexedDB trace storage, session tagging, export, and offline post-mortem replay.',
+      icon: <Archive className="w-4 h-4 text-blue-400" />,
+    },
+    {
+      id: 'errors-guide',
+      title: 'CAN Bus Diagnostics & Errors',
+      category: 'Hardware & Diagnostics',
+      description: 'ISO 11898-1 fault states, TEC/REC counters, error frames, and physical termination checks.',
+      icon: <AlertOctagon className="w-4 h-4 text-rose-400" />,
     },
     {
       id: 'macos-pcan',
@@ -413,6 +476,442 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
                   <div className="font-bold text-zinc-200 mb-1">Live Search</div>
                   <p className="text-zinc-500 text-[11px]">Instant text matching against CAN IDs, payload bytes (Hex), and DBC signal names.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeDocId === 'transmit-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
+                  <Send className="w-5 h-5" />
+                  <span>Transmit Engine & Periodic Message Simulation Guide</span>
+                </div>
+                {onNavigateToTransmit && (
+                  <button
+                    onClick={onNavigateToTransmit}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-cyan-600 hover:bg-cyan-500 text-white transition cursor-pointer shadow-sm"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Open Transmit Console</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Inject custom single-shot diagnostic requests, cyclic vehicle telemetry, and high-speed CAN-FD frames directly into the physical or virtual bus.
+              </p>
+            </div>
+
+            {/* Quick Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-xl space-y-1">
+                <div className="text-cyan-400 font-mono text-[10px] uppercase font-bold">Mode 1</div>
+                <div className="font-semibold text-xs text-zinc-200">Single-Shot Injection</div>
+                <div className="text-[11px] text-zinc-400">
+                  Send one frame on demand for diagnostic querying, PID polling, or calibration handshakes.
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-xl space-y-1">
+                <div className="text-emerald-400 font-mono text-[10px] uppercase font-bold">Mode 2</div>
+                <div className="font-semibold text-xs text-zinc-200">Cyclic Periodic Tasks</div>
+                <div className="text-[11px] text-zinc-400">
+                  Broadcast continuous frames at precise intervals (10ms, 50ms, 100ms, 2000ms) to emulate vehicle ECUs.
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800/80 rounded-xl space-y-1">
+                <div className="text-amber-400 font-mono text-[10px] uppercase font-bold">Mode 3</div>
+                <div className="font-semibold text-xs text-zinc-200">CAN-FD & BRS</div>
+                <div className="text-[11px] text-zinc-400">
+                  Flexible Data-Rate payloads up to 64 bytes with high-speed Bit Rate Switching (up to 5 Mbps).
+                </div>
+              </div>
+            </div>
+
+            {/* Section 1: Single Shot Parameters */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-cyan-400 font-bold text-sm">
+                <Zap className="w-4 h-4" />
+                <span>1. Single-Shot Message Formulation</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Configure every bit and byte of your transmitted frame:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1.5">
+                  <div className="font-semibold text-zinc-200">CAN ID & Identifier Type:</div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li><strong className="text-zinc-200">Standard 11-bit</strong>: Range <code className="text-cyan-300 font-mono">0x000</code> to <code className="text-cyan-300 font-mono">0x7FF</code> (e.g. OBD-II functional request <code className="text-cyan-300 font-mono">0x7DF</code>).</li>
+                    <li><strong className="text-zinc-200">Extended 29-bit</strong>: Range <code className="text-cyan-300 font-mono">0x00000000</code> to <code className="text-cyan-300 font-mono">0x1FFFFFFF</code> for J1939 heavy duty or UDS physical addressing.</li>
+                  </ul>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1.5">
+                  <div className="font-semibold text-zinc-200">Hexadecimal Payload Input:</div>
+                  <p className="text-zinc-400">
+                    Input space-separated hexadecimal bytes. For example, standard OBD-II Service 01, PID 0C (Engine RPM):
+                  </p>
+                  <code className="block p-2 bg-zinc-900 rounded font-mono text-cyan-300 text-xs">
+                    02 01 0C 00 00 00 00 00
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Periodic Scheduler */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <Clock className="w-4 h-4" />
+                <span>2. Multi-Task Periodic Transmission Scheduler</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Automotive networks operate on deterministic cyclic timing. In the Transmit page, create multiple independent transmission tasks:
+              </p>
+              <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-zinc-400">
+                  <div>
+                    <span className="text-zinc-200 font-semibold">10 ms – 20 ms</span>: Fast powertrain / motor torque loops.
+                  </div>
+                  <div>
+                    <span className="text-zinc-200 font-semibold">50 ms – 100 ms</span>: Chassis sensors, wheel speeds, battery state.
+                  </div>
+                  <div>
+                    <span className="text-zinc-200 font-semibold">500 ms – 1000 ms</span>: Environmental sensors, HVAC, ambient lights.
+                  </div>
+                  <div>
+                    <span className="text-zinc-200 font-semibold">2000 ms</span>: Diagnostic Tester Present keep-alive (<code className="font-mono text-zinc-300">02 3E 80 ...</code>).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Safety Listen-Only Alert */}
+            <div className="p-4 bg-amber-950/40 border border-amber-800/80 rounded-xl space-y-2">
+              <div className="flex items-center space-x-2 text-amber-300 font-bold text-xs">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Safety Interlock: Listen-Only Mode</span>
+              </div>
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                If your interface is connected with <strong>Listen-Only Mode</strong> enabled, transmission is intentionally blocked to protect production vehicle networks from unintended message collisions or ACK interference. To transmit, disconnect, uncheck Listen-Only, and reconnect.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeDocId === 'graphs-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm">
+                  <LineChart className="w-5 h-5" />
+                  <span>Real-Time Signal Oscilloscope & Plotter Guide</span>
+                </div>
+                {onNavigateToGraphs && (
+                  <button
+                    onClick={onNavigateToGraphs}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-purple-600 hover:bg-purple-500 text-white transition cursor-pointer shadow-sm"
+                  >
+                    <LineChart className="w-3.5 h-3.5" />
+                    <span>Open Oscilloscope</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Plot decoded physical telemetry values (such as RPM, coolant temperature, steering angle, or cell voltage) continuously across dynamic rolling time windows.
+              </p>
+            </div>
+
+            {/* Dual Plotting Modes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+                <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>Mode A: DBC Physical Signal Plotting</span>
+                </div>
+                <p className="text-zinc-400 leading-relaxed">
+                  When a DBC or Custom JSON Schema is active:
+                </p>
+                <ol className="list-decimal list-inside text-zinc-400 space-y-1">
+                  <li>Select the target CAN ID from the dropdown list.</li>
+                  <li>Choose the decoded signal name (e.g. <code className="text-zinc-300 font-mono">Engine_RPM</code>).</li>
+                  <li>CANScope scales the signal using your formula <code className="text-emerald-300 font-mono">(Raw × Scale) + Offset</code>.</li>
+                  <li>The Y-axis automatically formats with engineering units (<code className="text-zinc-300 font-mono">rpm, km/h, °C, V</code>).</li>
+                </ol>
+              </div>
+
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+                <div className="flex items-center space-x-2 text-cyan-400 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                  <span>Mode B: Raw Byte Inspection</span>
+                </div>
+                <p className="text-zinc-400 leading-relaxed">
+                  When reverse-engineering unknown or proprietary ECU protocols:
+                </p>
+                <ol className="list-decimal list-inside text-zinc-400 space-y-1">
+                  <li>Select the target CAN ID.</li>
+                  <li>Switch plot source to <strong>Raw Byte</strong>.</li>
+                  <li>Pick Byte 0 through Byte 7 (or up to Byte 63 for CAN-FD).</li>
+                  <li>Observe live byte transitions to isolate sensor counters, checksums, and states.</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Oscilloscope Controls */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-purple-400 font-bold text-sm">
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>Scope Controls & Features</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">Rolling Time Horizon</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    Switch between 5s, 15s, 30s, or 60s windows to zoom in on microsecond transients or monitor slow thermal drift.
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">Waveform Pause</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    Freeze the oscilloscope screen at any moment to analyze transient spikes or voltage drops.
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">1-Click Jump from Catalog</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    Click the line chart icon next to any message in the <strong>Messages</strong> catalog to jump directly to its live graph.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeDocId === 'visual-schema-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+                  <Sliders className="w-5 h-5" />
+                  <span>Visual Custom Schema Editor & 64-Bit Matrix Guide</span>
+                </div>
+                {onNavigateToDbc && (
+                  <button
+                    onClick={onNavigateToDbc}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-amber-600 hover:bg-amber-500 text-white transition cursor-pointer shadow-sm"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Launch Visual Designer</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Design custom CAN messages, map signals across 64-bit payload matrices, verify bit collisions, and export to JSON or Vector DBC.
+              </p>
+            </div>
+
+            {/* Matrix & Bit Layout Guide */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-amber-400 font-bold text-sm">
+                <Layers className="w-4 h-4" />
+                <span>Interactive 64-Bit Payload Allocation Grid</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                The visual bit matrix represents a standard 8-byte (64-bit) CAN payload arranged in automotive standard order (Byte 0 to Byte 7, Bit 7 down to Bit 0):
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200">Matrix Visual Features:</div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li><strong className="text-zinc-200">Color Tagging</strong>: Each signal receives a distinct hue spanning its allocated bits.</li>
+                    <li><strong className="text-zinc-200">Start Bit Indicators</strong>: Marked with an anchor badge at the LSB (Intel) or MSB (Motorola).</li>
+                    <li><strong className="text-rose-400 font-bold">Collision Warning</strong>: If two signals accidentally share bit positions, conflicting cells turn bright red with an alert icon.</li>
+                    <li><strong className="text-zinc-200">Click to Select</strong>: Clicking any bit cell selects and focuses that signal in the inspector.</li>
+                  </ul>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-2">
+                  <div className="font-semibold text-zinc-200">Byte Ordering: Intel vs Motorola</div>
+                  <ul className="list-disc list-inside text-zinc-400 space-y-1">
+                    <li><strong className="text-cyan-300">Little-Endian (Intel)</strong>: Least significant byte stored first. Start bit corresponds to the signal's LSB.</li>
+                    <li><strong className="text-amber-300">Big-Endian (Motorola)</strong>: Most significant byte stored first. Start bit corresponds to the signal's MSB.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Math Sandbox */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <Sparkles className="w-4 h-4" />
+                <span>Live Math Formula Preview & Test Sandbox</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Never guess scaling factors again. Every signal features an interactive live sandbox implementing:
+              </p>
+              <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg text-center font-mono text-cyan-300 text-sm">
+                Physical Value = (Raw Integer × Scale) + Offset
+              </div>
+              <p className="text-xs text-zinc-400">
+                Type test integer values into the sandbox field to preview the computed floating-point value and verify unit boundaries before applying to the bus.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeDocId === 'history-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-blue-400 font-bold text-sm">
+                  <Archive className="w-5 h-5" />
+                  <span>Offline History Cache & Trace Replay Guide</span>
+                </div>
+                {onNavigateToHistory && (
+                  <button
+                    onClick={onNavigateToHistory}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white transition cursor-pointer shadow-sm"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    <span>Open History Cache</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Learn how CANScope securely persists recorded CAN sessions in your browser using IndexedDB for zero-cloud privacy and offline post-mortem replay.
+              </p>
+            </div>
+
+            {/* 100% Privacy Card */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-xs">
+                <ShieldCheck className="w-4 h-4" />
+                <span>100% Client-Side Private Storage (Zero Cloud Leakage)</span>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Automotive vehicle bus logs contain sensitive telemetry and proprietary ECU IDs. All trace sessions stored via CANScope's <strong>History Cache</strong> reside strictly inside your browser's private IndexedDB sandbox on your local machine. No frames are ever uploaded to external servers.
+              </p>
+            </div>
+
+            {/* Workflow Steps */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1">
+                <div className="text-blue-400 font-mono text-[10px] uppercase font-bold">Step 1</div>
+                <div className="font-semibold text-zinc-200">Capture & Tag</div>
+                <div className="text-[11px] text-zinc-400">
+                  Save traces with session names, tags (e.g. <code className="text-zinc-300 font-mono">#dyno</code>, <code className="text-zinc-300 font-mono">#cold-start</code>), and notes.
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1">
+                <div className="text-cyan-400 font-mono text-[10px] uppercase font-bold">Step 2</div>
+                <div className="font-semibold text-zinc-200">Manage & Search</div>
+                <div className="text-[11px] text-zinc-400">
+                  Filter by date, frame count, or tags. Inspect frame statistics and payload distributions.
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-1">
+                <div className="text-emerald-400 font-mono text-[10px] uppercase font-bold">Step 3</div>
+                <div className="font-semibold text-zinc-200">Replay & Export</div>
+                <div className="text-[11px] text-zinc-400">
+                  Load any historical trace into the live Sniffer and Oscilloscope for offline debugging, or export to BLF, ASC, or CSV.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeDocId === 'errors-guide' && (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="p-5 bg-zinc-900/80 border border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 text-rose-400 font-bold text-sm">
+                  <AlertOctagon className="w-5 h-5" />
+                  <span>CAN Bus Diagnostics, Error Frames & Bus State Guide</span>
+                </div>
+                {onNavigateToErrors && (
+                  <button
+                    onClick={onNavigateToErrors}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-500 text-white transition cursor-pointer shadow-sm"
+                  >
+                    <AlertOctagon className="w-3.5 h-3.5" />
+                    <span>Open Error Diagnostics</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Understand ISO 11898-1 fault confinement, Transmit/Receive Error Counters (TEC/REC), and physical layer troubleshooting.
+              </p>
+            </div>
+
+            {/* Error States Matrix */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="text-xs font-bold text-zinc-200">ISO 11898-1 Fault Confinement States</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1.5">
+                  <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span>Error Active</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-400">
+                    <strong className="text-zinc-200">TEC &lt; 128, REC &lt; 128</strong>. Normal state. The node participates fully in bus communication and sends active error flags upon error detection.
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1.5">
+                  <div className="flex items-center space-x-2 text-amber-400 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span>Error Passive</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-400">
+                    <strong className="text-zinc-200">TEC or REC ≥ 128</strong>. Node can only send passive error flags (6 recessive bits) and must wait extra suspend transmission time between frames.
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1.5">
+                  <div className="flex items-center space-x-2 text-rose-500 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span>Bus Off</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-400">
+                    <strong className="text-zinc-200">TEC &gt; 255</strong>. Severe error threshold. The controller completely isolates itself from the physical bus until hardware reset to protect other nodes.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Common Error Types */}
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+              <div className="text-xs font-bold text-zinc-200">Common CAN Error Frame Types & Causes</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">Bit Stuffing Error</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    More than 5 consecutive identical bits detected. Commonly caused by noise spikes, baud rate mismatch, or incorrect sample point.
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">CRC Checksum Error</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    Receiver computed CRC does not match transmitted CRC. Caused by electromagnetic interference (EMI) or missing ground reference.
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">ACK Delimiter / Missing ACK</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    No other node acknowledged the frame. Occurs when transmitting on an empty bus or when all other nodes are in Listen-Only mode.
+                  </p>
+                </div>
+                <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg space-y-1">
+                  <div className="font-bold text-zinc-200">Physical Termination (120 Ω)</div>
+                  <p className="text-zinc-400 text-[11px]">
+                    High-speed CAN requires two 120 Ω resistors at the physical ends of the line (measuring ~60 Ω total). Missing resistors cause signal reflection form errors.
+                  </p>
                 </div>
               </div>
             </div>

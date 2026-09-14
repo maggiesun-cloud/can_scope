@@ -178,6 +178,11 @@ export function App() {
               onNavigateToMonitor={() => setCurrentPage('monitor')}
               onNavigateToLogging={() => setCurrentPage('logging')}
               onOpenConnect={() => setIsConfigModalOpen(true)}
+              onNavigateToTransmit={() => setCurrentPage('transmit')}
+              onNavigateToGraphs={() => setCurrentPage('graphs')}
+              onNavigateToHistory={() => setCurrentPage('history')}
+              onNavigateToErrors={() => setCurrentPage('errors')}
+              onNavigateToMessages={() => setCurrentPage('messages')}
             />
           )}
         </main>

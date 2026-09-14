@@ -177,10 +177,18 @@ Payload schema:
 
 ---
 
-## Documentation & Guides
+## Documentation & Technical Guides
 
-- **[Sniffer Operation & Controls Guide](docs/sniffer-guide.md)**: Detailed instructions on starting, pausing, resuming, clearing, filtering, and capturing CAN traffic.
+CANScope includes comprehensive documentation accessible directly from the in-app **Documentation Hub** (`Docs` tab) and in standalone Markdown files:
+
+- **[Sniffer Operation & Controls Guide](docs/sniffer-guide.md)**: Starting, pausing, resuming, clearing, filtering, and capturing CAN traffic with global keyboard shortcuts.
+- **[Transmit Engine & Periodic Simulation Guide](docs/transmit-guide.md)**: Single-shot frame injection, cyclic periodic schedulers (10ms–2000ms), standard/extended 29-bit IDs, and CAN-FD Bit Rate Switching (BRS).
+- **[Real-Time Oscilloscope & Signal Graphing Guide](docs/graphs-guide.md)**: Multi-channel continuous waveform plotting, DBC physical signal conversion with units, raw byte tracking, and rolling time windows.
+- **[Visual Schema Editor & 64-Bit Matrix Guide](docs/visual-schema-guide.md)**: Interactive payload bit matrix, collision/overlap detection, Intel/Motorola endianness, live formula sandbox, and Vector `.dbc` / JSON export.
 - **[Custom CAN JSON DBC Guide](docs/json-dbc-guide.md)**: Human-readable JSON schema specification for custom CAN ID signal decoding.
-- **[macOS & PCAN Setup](docs/macos-setup.md)**: Driver and hardware verification for PEAK-System USB adapters on macOS.
+- **[Offline History Cache & Trace Replay Guide](docs/history-guide.md)**: Zero-cloud browser-local IndexedDB persistence, session tagging, BLF/ASC/CSV export, and offline post-mortem playback.
+- **[CAN Bus Diagnostics & Error Frames Guide](docs/errors-guide.md)**: ISO 11898-1 fault confinement (Error Active, Error Passive, Bus-Off), TEC/REC counter telemetry, and physical 120 Ω bus termination checks.
+- **[macOS & PCAN Setup Guide](docs/macos-setup.md)**: Driver and hardware verification for PEAK-System USB adapters on macOS.
+- **[Linux SocketCAN & vcan Setup Guide](docs/linux-setup.md)**: Setting up Linux kernel SocketCAN interfaces, virtual CAN (`vcan0`), and terminal inspection with `can-utils`.
 - **[Architecture Overview](docs/architecture.md)**: Technical breakdown of the dual-thread HAL and WebSocket streaming pipeline.
 
