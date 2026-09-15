@@ -12,6 +12,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { DashboardPage } from './pages/DashboardPage';
 import { MonitorPage } from './pages/MonitorPage';
 import { MessagesPage } from './pages/MessagesPage';
+import { CanRouterPage } from './pages/CanRouterPage';
 import { GraphsPage } from './pages/GraphsPage';
 import { LoggingPage } from './pages/LoggingPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -123,6 +124,14 @@ export function App() {
               busStatus={status}
               onSelectFrame={setSelectedFrame}
               onNavigateToGraph={handleNavigateToGraph}
+            />
+          )}
+
+          {currentPage === 'router' && (
+            <CanRouterPage
+              status={status}
+              frames={frames}
+              addToast={addToast}
             />
           )}
 

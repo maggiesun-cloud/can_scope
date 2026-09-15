@@ -26,6 +26,8 @@ interface CanFrame {
   esi?: boolean;
   dlc: number;
   data: number[];
+  channel?: string;
+  routedFrom?: string;
 }
 
 interface CanConfig {
@@ -143,8 +145,64 @@ function discoverHardware() {
   }> = [
     {
       backend: 'mock',
+      channel: 'mock-router-6ch',
+      name: '6-Channel CAN Router (All CH1-CH6)',
+      available: true,
+      isVirtual: true,
+      details: 'Multi-bus router simulation across 6 independent automotive channels',
+    },
+    {
+      backend: 'mock',
+      channel: 'can0',
+      name: 'CAN 1: Powertrain & Drive (can0)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 1: 500 kbit/s Engine, Torque & EV Battery Pack',
+    },
+    {
+      backend: 'mock',
+      channel: 'can1',
+      name: 'CAN 2: Body & Comfort (can1)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 2: 125 kbit/s Climate, Doors & Lighting Electronics',
+    },
+    {
+      backend: 'mock',
+      channel: 'can2',
+      name: 'CAN 3: Chassis & Suspension (can2)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 3: 500 kbit/s Vehicle Dynamics, ABS & Steering Angle',
+    },
+    {
+      backend: 'mock',
+      channel: 'can3',
+      name: 'CAN 4: ADAS & Radar Sensor (can3)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 4: 1 Mbit/s Long-Range Radar & Autonomous Objects',
+    },
+    {
+      backend: 'mock',
+      channel: 'can4',
+      name: 'CAN 5: Cockpit & Infotainment (can4)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 5: 500 kbit/s Instrument Cluster & Audio/HMI',
+    },
+    {
+      backend: 'mock',
+      channel: 'can5',
+      name: 'CAN 6: Diagnostics & UDS (can5)',
+      available: true,
+      isVirtual: true,
+      details: 'Channel 6: 500 kbit/s OBD-II & UDS ISO 14229 Gateway',
+    },
+    {
+      backend: 'mock',
       channel: 'mock0',
-      name: 'Simulated CAN Bus (Mock)',
+      name: 'Simulated CAN Bus (Legacy mock0)',
       available: true,
       isVirtual: true,
       details: 'Built-in multi-ECU virtual traffic simulator',
@@ -376,10 +434,11 @@ function startMockCanEngine() {
       fd: false,
       dlc: 8,
       data: [d0, d1, d2, d3, d4, d5, d6, d7],
+      channel: 'can0',
     });
   }, 10);
 
-  // 2. 0x123 (291 dec) Vehicle Dynamics every 20 ms (50 Hz)
+  // 2. 0x123 (291 dec) Vehicle Dynamics every 20 ms (50 Hz) - CH3 Chassis
   const timer20ms = setInterval(() => {
     if (status.connectionState !== 'connected') return;
     const speedJitter = Math.sin(Date.now() / 3000) * 15;
@@ -411,10 +470,11 @@ function startMockCanEngine() {
       fd: false,
       dlc: 8,
       data: [d0, d1, d2, d3, d4, d5, d6, d7],
+      channel: 'can2',
     });
   }, 20);
 
-  // 3. 0x200 (512 dec) EV Battery Pack every 50 ms (20 Hz)
+  // 3. 0x200 (512 dec) EV Battery Pack every 50 ms (20 Hz) - CH1 Powertrain
   const timer50ms = setInterval(() => {
     if (status.connectionState !== 'connected') return;
     const voltage = 385.2 + Math.sin(Date.now() / 4000) * 4;
@@ -445,10 +505,11 @@ function startMockCanEngine() {
       fd: false,
       dlc: 8,
       data: [d0, d1, d2, d3, d4, d5, d6, d7],
+      channel: 'can0',
     });
   }, 50);
 
-  // 4. 0x456 (1110 dec) ADAS Radar Track every 100 ms (10 Hz)
+  // 4. 0x456 (1110 dec) ADAS Radar Track every 100 ms (10 Hz) - CH4 ADAS
   const timer100ms = setInterval(() => {
     if (status.connectionState !== 'connected') return;
     const dist = 45.5 + Math.sin(Date.now() / 5000) * 20;
@@ -475,10 +536,31 @@ function startMockCanEngine() {
       fd: false,
       dlc: 8,
       data: [d0, d1, d2, d3, d4, d5, d6, d7],
+      channel: 'can3',
     });
   }, 100);
 
-  // 5. 0x500 (1280 dec) Body Electronics every 500 ms (2 Hz)
+  // 5. 0x300 (768 dec) Cockpit & Infotainment Cluster every 200 ms (5 Hz) - CH5 Infotainment
+  const timer200ms = setInterval(() => {
+    if (status.connectionState !== 'connected') return;
+    const odo = Math.floor(48250 + (Date.now() / 10000) % 500);
+    const audioTrack = (Math.floor(Date.now() / 8000) % 12) + 1;
+    const volume = 22;
+
+    broadcastFrame({
+      timestamp: Date.now() / 1000,
+      direction: 'RX',
+      id: 0x300,
+      idHex: '0x300',
+      extended: false,
+      fd: false,
+      dlc: 8,
+      data: [odo & 0xff, (odo >> 8) & 0xff, (odo >> 16) & 0xff, audioTrack, volume, 0x01, 0x00, 0x00],
+      channel: 'can4',
+    });
+  }, 200);
+
+  // 6. 0x500 (1280 dec) Body Electronics every 500 ms (2 Hz) - CH2 Body
   const timer500ms = setInterval(() => {
     if (status.connectionState !== 'connected') return;
     const ambient = 22.5;
@@ -493,10 +575,11 @@ function startMockCanEngine() {
       fd: false,
       dlc: 8,
       data: [ambientRaw, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+      channel: 'can1',
     });
   }, 500);
 
-  // 6. CAN-FD Test frame (Extended + FD + BRS, 16 bytes) every 250 ms if CAN-FD enabled
+  // 7. CAN-FD Test frame (Extended + FD + BRS, 16 bytes) every 250 ms if CAN-FD enabled - CH6 Diagnostics
   const timerFd = setInterval(() => {
     if (status.connectionState !== 'connected') return;
     if (!status.fdEnabled) return;
@@ -517,6 +600,7 @@ function startMockCanEngine() {
       esi: false,
       dlc: 16,
       data: fdData,
+      channel: 'can5',
     });
   }, 250);
 
@@ -557,7 +641,7 @@ function startMockCanEngine() {
     }
   }, 12000);
 
-  mockTimers = [timer10ms, timer20ms, timer50ms, timer100ms, timer500ms, timerFd, timerErrors];
+  mockTimers = [timer10ms, timer20ms, timer50ms, timer100ms, timer200ms, timer500ms, timerFd, timerErrors];
 }
 
 function stopMockCanEngine() {
@@ -749,7 +833,7 @@ app.post('/api/transmit', (req, res) => {
     });
   }
 
-  const { id, extended, fd, brs, dlc, data, periodMs, taskId, stopPeriodic } = req.body || {};
+  const { id, extended, fd, brs, dlc, data, periodMs, taskId, stopPeriodic, channel: targetChannel } = req.body || {};
 
   // Stop periodic task if requested
   if (stopPeriodic && taskId) {
@@ -781,6 +865,7 @@ app.post('/api/transmit', (req, res) => {
       brs: Boolean(brs),
       dlc: cleanDlc,
       data: cleanData,
+      channel: targetChannel || status.channel || 'can0',
     };
     broadcastFrame(frame);
 

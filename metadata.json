@@ -1,6 +1,6 @@
 {
   "name": "CANScope",
-  "description": "Professional browser-based CAN and CAN-FD bus monitoring, sniffing, decoding, graphing, and transmission analyzer with hardware abstraction and runtime backend discovery.",
+  "description": "Professional browser-based CAN and CAN-FD bus monitoring, sniffing, decoding, graphing, 6-channel routing gateway matrix, and transmission analyzer.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

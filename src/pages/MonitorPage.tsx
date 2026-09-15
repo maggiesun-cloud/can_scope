@@ -52,6 +52,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
   const [timeMode, setTimeMode] = useState<'relative' | 'absolute'>('relative');
   const [directionFilter, setDirectionFilter] = useState<'all' | 'RX' | 'TX'>('all');
   const [protocolFilter, setProtocolFilter] = useState<'all' | 'classic' | 'fd'>('all');
+  const [channelFilter, setChannelFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [idRangeMin, setIdRangeMin] = useState<string>('');
   const [idRangeMax, setIdRangeMax] = useState<string>('');
@@ -236,6 +237,10 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
       result = result.filter((f) => f.fd);
     }
 
+    if (channelFilter !== 'all') {
+      result = result.filter((f) => (f.channel || 'can0') === channelFilter);
+    }
+
     // ID Range filter
     const minId = idRangeMin.trim()
       ? idRangeMin.startsWith('0x')
@@ -274,7 +279,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
     }
 
     return result;
-  }, [frames, directionFilter, protocolFilter, searchQuery, idRangeMin, idRangeMax]);
+  }, [frames, directionFilter, protocolFilter, channelFilter, searchQuery, idRangeMin, idRangeMax]);
 
   const handleExportCsv = () => {
     const header = 'timestamp,direction,id,type,dlc,data\n';
@@ -429,6 +434,20 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           </select>
 
           <select
+            value={channelFilter}
+            onChange={(e: any) => setChannelFilter(e.target.value)}
+            className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none"
+          >
+            <option value="all">All 6 Channels</option>
+            <option value="can0">CH1 (can0)</option>
+            <option value="can1">CH2 (can1)</option>
+            <option value="can2">CH3 (can2)</option>
+            <option value="can3">CH4 (can3)</option>
+            <option value="can4">CH5 (can4)</option>
+            <option value="can5">CH6 (can5)</option>
+          </select>
+
+          <select
             value={protocolFilter}
             onChange={(e: any) => setProtocolFilter(e.target.value)}
             className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none"
@@ -497,6 +516,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
             <tr>
               <th className="py-2 px-3 w-28">Timestamp</th>
               <th className="py-2 px-2 w-14 text-center">Dir</th>
+              <th className="py-2 px-2 w-16 text-center">Ch</th>
               <th className="py-2 px-2 w-24">ID (Hex)</th>
               <th className="py-2 px-2 w-20">Type</th>
               <th className="py-2 px-2 w-12 text-center">DLC</th>
@@ -510,7 +530,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           <tbody className="divide-y divide-zinc-900">
             {filteredFrames.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-20 text-center text-zinc-500 font-sans">
+                <td colSpan={11} className="py-20 text-center text-zinc-500 font-sans">
                   <div className="flex flex-col items-center space-y-2">
                     <Filter className="w-8 h-8 text-zinc-600" />
                     <span>No CAN frames match current filter or bus is silent.</span>
@@ -552,6 +572,13 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
                         }`}
                       >
                         {frame.direction}
+                      </span>
+                    </td>
+
+                    {/* Channel */}
+                    <td className="py-1.5 px-2 text-center whitespace-nowrap">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-zinc-800 text-cyan-300 border border-zinc-700">
+                        {frame.channel ? frame.channel.toUpperCase() : 'CAN0'}
                       </span>
                     </td>
 

@@ -11,6 +11,8 @@ export interface CanFrame {
   esi?: boolean; // Error State Indicator (CAN-FD)
   dlc: number; // Data Length Code (0-8 for CAN, up to 64 for CAN-FD)
   data: number[]; // Array of byte values (0-255)
+  channel?: string; // e.g. "can0", "can1", "CH1", "CH2", etc.
+  routedFrom?: string; // Channel where frame originated before router forwarding
   // Derived / sniffer UI metadata
   count?: number;
   periodMs?: number;
@@ -228,3 +230,74 @@ export interface IndexedDbSettings {
   autoSaveOnPause: boolean;
   autoSaveOnClear: boolean;
 }
+
+// ==========================================
+// 6-Channel CAN Router / Gateway Types
+// ==========================================
+
+export interface CanRouterChannelConfig {
+  id: number; // 1 to 6
+  name: string; // e.g. "CAN 1 (Powertrain)"
+  interfaceCode: string; // e.g. "can0", "PCAN_USBBUS1", "CH1"
+  domain: string; // e.g. "Powertrain", "Body & Comfort", "Chassis", "ADAS", "Infotainment", "Diagnostics"
+  color: string; // Tailwind color theme identifier
+  bitrate: number; // Nominal bitrate e.g. 500000
+  dataBitrate?: number; // CAN-FD data bitrate e.g. 2000000
+  fdEnabled: boolean;
+  listenOnly: boolean;
+  terminationResistor: boolean; // 120-ohm termination software switchable
+  enabled: boolean;
+  busLoad: number; // 0.0 - 100.0%
+  fps: number;
+  rxCount: number;
+  txCount: number;
+  errorCount: number;
+  lastActiveTimestamp?: number;
+}
+
+export type RoutingAction = 'forward' | 'remap_id' | 'modify_data' | 'drop' | 'mirror';
+
+export interface CanRoutingRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  sourceChannel: number | 'all'; // 1-6 or 'all'
+  filterType: 'any' | 'id_exact' | 'id_range' | 'id_mask';
+  filterId?: number; // e.g. 0x100
+  filterIdHex?: string;
+  filterRangeMin?: number;
+  filterRangeMax?: number;
+  filterMask?: number;
+  targetChannels: number[]; // e.g. [2, 3] (1 to 6)
+  action: RoutingAction;
+  remapId?: number;
+  remapIdHex?: string;
+  dataTransform?: {
+    byteIndex: number;
+    operation: 'set' | 'mask_and' | 'mask_or' | 'xor' | 'offset';
+    value: number;
+  };
+  rateLimitHz?: number;
+  lastForwardedTimestamp?: number;
+  matchedCount: number;
+  routedCount: number;
+  droppedCount: number;
+  lastSeenTimestamp?: number;
+}
+
+export interface CanRouterPacketLog {
+  id: string;
+  timestamp: number;
+  sourceChannel: number;
+  targetChannels: number[];
+  originalId: number;
+  originalIdHex: string;
+  routedId?: number;
+  routedIdHex?: string;
+  dlc: number;
+  data: number[];
+  action: RoutingAction;
+  ruleName?: string;
+  status: 'routed' | 'dropped' | 'modified';
+}
+

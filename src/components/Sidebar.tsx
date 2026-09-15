@@ -11,6 +11,7 @@ import {
   AlertOctagon,
   Cpu,
   BookOpen,
+  Network,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ export type NavPage =
   | 'dashboard'
   | 'monitor'
   | 'messages'
+  | 'router'
   | 'graphs'
   | 'logging'
   | 'history'
@@ -47,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4 shrink-0" /> },
     { id: 'monitor', label: 'Monitor', icon: <Terminal className="w-4 h-4 shrink-0" /> },
     { id: 'messages', label: 'Messages', icon: <ListOrdered className="w-4 h-4 shrink-0" /> },
+    { id: 'router', label: 'CAN Router (6CH)', icon: <Network className="w-4 h-4 shrink-0 text-cyan-400" /> },
     { id: 'graphs', label: 'Graphs', icon: <LineChart className="w-4 h-4 shrink-0" /> },
     { id: 'logging', label: 'Logging', icon: <HardDriveDownload className="w-4 h-4 shrink-0" /> },
     { id: 'history', label: 'History Cache', icon: <Archive className="w-4 h-4 shrink-0" /> },

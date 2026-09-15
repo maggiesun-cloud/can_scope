@@ -318,8 +318,34 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
                 />
               )}
               <p className="text-[10px] text-zinc-500 mt-1">
-                Port 1: <code className="text-zinc-400">can0</code> / <code className="text-zinc-400">PCAN_USBBUS1</code> | Port 2: <code className="text-zinc-400">can1</code> / <code className="text-zinc-400">PCAN_USBBUS2</code>
+                6-CH Router Ports: <code className="text-zinc-400">can0</code>..<code className="text-zinc-400">can5</code> | <code className="text-zinc-400">PCAN_USBBUS1</code>..<code className="text-zinc-400">6</code>
               </p>
+              {/* Quick 6-channel port switcher */}
+              <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mr-1">6-CH Select:</span>
+                {[
+                  { label: 'All 6CH', val: 'mock-router-6ch' },
+                  { label: 'CH1 (can0)', val: 'can0' },
+                  { label: 'CH2 (can1)', val: 'can1' },
+                  { label: 'CH3 (can2)', val: 'can2' },
+                  { label: 'CH4 (can3)', val: 'can3' },
+                  { label: 'CH5 (can4)', val: 'can4' },
+                  { label: 'CH6 (can5)', val: 'can5' },
+                ].map((p) => (
+                  <button
+                    key={p.val}
+                    type="button"
+                    onClick={() => setChannel(p.val)}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition cursor-pointer ${
+                      channel === p.val
+                        ? 'bg-cyan-900 text-cyan-200 border border-cyan-700 font-bold'
+                        : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 border border-zinc-700/60'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Bitrate */}

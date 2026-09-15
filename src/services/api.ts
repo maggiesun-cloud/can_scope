@@ -73,6 +73,7 @@ export async function transmitCanFrame(payload: {
   brs?: boolean;
   dlc: number;
   data: number[];
+  channel?: string;
   periodMs?: number;
   taskId?: string;
   stopPeriodic?: boolean;
