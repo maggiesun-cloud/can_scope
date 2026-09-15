@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { AggregatedIdStats } from '../store/canStore';
-import { DbcDatabase, CanFrame } from '../types/can';
+import { DbcDatabase, CanFrame, BusStatus } from '../types/can';
 import { formatTimestamp, formatAscii } from '../utils/formatters';
-import { Search, ArrowUpDown, Eye, Database, Activity } from 'lucide-react';
+import { BusTimingJitterStation } from '../components/BusTimingJitterStation';
+import { Search, ArrowUpDown, Eye, Database, Activity, Clock, Gauge } from 'lucide-react';
 
 interface MessagesPageProps {
   aggregatedStats: Map<number, AggregatedIdStats>;
   activeDbc: DbcDatabase | null;
+  frames?: CanFrame[];
+  busStatus?: BusStatus;
   onSelectFrame: (frame: CanFrame) => void;
   onNavigateToGraph?: (canId: number) => void;
 }
@@ -16,9 +19,12 @@ type SortField = 'id' | 'count' | 'period' | 'frequency' | 'lastSeen';
 export const MessagesPage: React.FC<MessagesPageProps> = ({
   aggregatedStats,
   activeDbc,
+  frames = [],
+  busStatus = { connected: true, bitrate: 500000, busLoad: 18.5, state: 'active', errorCountRx: 0, errorCountTx: 0 },
   onSelectFrame,
   onNavigateToGraph,
 }) => {
+  const [activeTab, setActiveTab] = useState<'matrix' | 'jitter'>('matrix');
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('count');
   const [sortAsc, setSortAsc] = useState(false);
@@ -84,32 +90,77 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   return (
     <div className="flex flex-col h-full bg-zinc-950 text-zinc-200">
       {/* Header Toolbar */}
-      <div className="p-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between gap-4">
+      <div className="p-4 bg-zinc-900 border-b border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-bold text-zinc-100 flex items-center space-x-2">
-            <span>Aggregated CAN ID Monitor</span>
-            <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-mono text-xs border border-zinc-700/60">
-              {aggregatedStats.size} Unique IDs
-            </span>
-          </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Real-time periodic message matrix with cycle time, frequency, and live payload changes
+          <div className="flex items-center space-x-3">
+            <h2 className="text-sm font-bold text-zinc-100 flex items-center space-x-2">
+              <span>CAN Bus Message & Statistics Station</span>
+              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-mono text-xs border border-zinc-700/60">
+                {aggregatedStats.size} Unique IDs
+              </span>
+            </h2>
+
+            {/* View Switcher Tabs */}
+            <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
+              <button
+                onClick={() => setActiveTab('matrix')}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
+                  activeTab === 'matrix'
+                    ? 'bg-cyan-600 text-zinc-950 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Database className="w-3.5 h-3.5" />
+                <span>Periodic Matrix</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('jitter')}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
+                  activeTab === 'jitter'
+                    ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Timing Jitter & Bandwidth</span>
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            {activeTab === 'matrix'
+              ? 'Real-time periodic message matrix with cycle time, frequency, and live payload changes'
+              : 'Statistical cycle-time distribution, timing jitter standard deviation (σ), and bus bandwidth occupancy'}
           </p>
         </div>
 
-        <div className="relative w-72">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by Hex ID or DBC Name..."
-            className="w-full pl-9 pr-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
-          />
-        </div>
+        {activeTab === 'matrix' && (
+          <div className="relative w-full md:w-72">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by Hex ID or DBC Name..."
+              className="w-full pl-9 pr-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded text-xs font-mono text-zinc-200 focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Aggregated Table */}
+      {activeTab === 'jitter' ? (
+        <div className="flex-1 overflow-auto p-4">
+          <BusTimingJitterStation
+            frames={frames}
+            aggregatedStats={aggregatedStats}
+            busStatus={busStatus}
+            activeDbc={activeDbc}
+            onSelectFrame={onSelectFrame}
+            onNavigateToGraph={onNavigateToGraph}
+          />
+        </div>
+      ) : (
+      /* Aggregated Table */
       <div className="flex-1 overflow-auto font-mono text-xs">
         <table className="w-full border-collapse text-left">
           <thead className="bg-zinc-900/95 text-zinc-400 sticky top-0 z-10 border-b border-zinc-800 text-[11px]">
@@ -261,6 +312,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 };

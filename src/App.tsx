@@ -119,6 +119,8 @@ export function App() {
             <MessagesPage
               aggregatedStats={aggregatedStats}
               activeDbc={activeDbc}
+              frames={frames}
+              busStatus={status}
               onSelectFrame={setSelectedFrame}
               onNavigateToGraph={handleNavigateToGraph}
             />

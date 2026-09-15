@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BusStatus, CanFrame } from '../types/can';
 import { transmitCanFrame } from '../services/api';
 import { ObdDiagnosticStation } from '../components/ObdDiagnosticStation';
+import { UdsDiagnosticConsole } from '../components/UdsDiagnosticConsole';
 import {
   Send,
   AlertTriangle,
@@ -15,6 +16,7 @@ import {
   Activity,
   Layers,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 
 interface TransmitPageProps {
@@ -40,7 +42,7 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast, fr
   const isConnected = status.connectionState === 'connected';
   const isListenOnly = status.listenOnly;
 
-  const [activeMode, setActiveMode] = useState<'manual' | 'obd'>('manual');
+  const [activeMode, setActiveMode] = useState<'manual' | 'uds' | 'obd'>('manual');
 
   // Single Frame Form State
   const [canIdInput, setCanIdInput] = useState('0x7DF'); // Standard OBD-II functional request
@@ -219,7 +221,18 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast, fr
             }`}
           >
             <Layers className="w-3.5 h-3.5 text-amber-400" />
-            <span>Frame Injector & Periodic Tasks</span>
+            <span>Frame Injector & Periodic</span>
+          </button>
+          <button
+            onClick={() => setActiveMode('uds')}
+            className={`px-3 py-1.5 rounded transition font-semibold cursor-pointer flex items-center space-x-1.5 ${
+              activeMode === 'uds'
+                ? 'bg-cyan-600 text-zinc-950 font-bold shadow'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>UDS (ISO 14229-1) Console</span>
           </button>
           <button
             onClick={() => setActiveMode('obd')}
@@ -229,8 +242,8 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast, fr
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            <span>OBD-II Diagnostic Station (Live PIDs)</span>
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span>OBD-II Live PIDs</span>
           </button>
         </div>
       </div>
@@ -252,7 +265,14 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast, fr
         </div>
       </div>
 
-      {activeMode === 'obd' ? (
+      {activeMode === 'uds' ? (
+        <UdsDiagnosticConsole
+          isConnected={isConnected}
+          isListenOnly={isListenOnly}
+          frames={frames}
+          addToast={addToast}
+        />
+      ) : activeMode === 'obd' ? (
         <ObdDiagnosticStation
           isConnected={isConnected}
           isListenOnly={isListenOnly}

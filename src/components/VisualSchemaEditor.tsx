@@ -32,6 +32,30 @@ interface VisualSchemaEditorProps {
 
 const COMMON_UNITS = ['rpm', 'km/h', '°C', 'V', 'mV', 'A', 'mA', '%', 'bar', 'kPa', 'deg', 'Nm', 'kW', 'm/s', 'Hz'];
 
+interface SignalTemplate {
+  name: string;
+  length: number;
+  byteOrder: 'little_endian' | 'big_endian';
+  isSigned: boolean;
+  scale: number;
+  offset: number;
+  min: number;
+  max: number;
+  unit: string;
+}
+
+const AUTOMOTIVE_SIGNAL_TEMPLATES: SignalTemplate[] = [
+  { name: 'EngineSpeed', length: 16, byteOrder: 'little_endian', isSigned: false, scale: 0.25, offset: 0, min: 0, max: 8000, unit: 'rpm' },
+  { name: 'VehicleSpeed', length: 16, byteOrder: 'little_endian', isSigned: false, scale: 0.01, offset: 0, min: 0, max: 260, unit: 'km/h' },
+  { name: 'ThrottlePos', length: 8, byteOrder: 'little_endian', isSigned: false, scale: 0.392157, offset: 0, min: 0, max: 100, unit: '%' },
+  { name: 'SteeringAngle', length: 16, byteOrder: 'little_endian', isSigned: true, scale: 0.1, offset: 0, min: -720, max: 720, unit: 'deg' },
+  { name: 'CoolantTemp', length: 8, byteOrder: 'little_endian', isSigned: false, scale: 1, offset: -40, min: -40, max: 215, unit: '°C' },
+  { name: 'BrakePressure', length: 12, byteOrder: 'little_endian', isSigned: false, scale: 0.1, offset: 0, min: 0, max: 200, unit: 'bar' },
+  { name: 'BatteryVoltage', length: 16, byteOrder: 'little_endian', isSigned: false, scale: 0.1, offset: 0, min: 0, max: 800, unit: 'V' },
+  { name: 'BatterySoC', length: 8, byteOrder: 'little_endian', isSigned: false, scale: 0.5, offset: 0, min: 0, max: 100, unit: '%' },
+  { name: 'GearPosition', length: 4, byteOrder: 'little_endian', isSigned: false, scale: 1, offset: 0, min: 0, max: 15, unit: 'enum' },
+];
+
 export const VisualSchemaEditor: React.FC<VisualSchemaEditorProps> = ({
   initialDatabase,
   onApplySchema,
@@ -264,6 +288,27 @@ export const VisualSchemaEditor: React.FC<VisualSchemaEditorProps> = ({
     const updatedSignals = [...activeMessage.signals];
     const currentSig = { ...updatedSignals[selectedSignalIndex], [field]: value };
     updatedSignals[selectedSignalIndex] = currentSig;
+    handleUpdateMessageField('signals', updatedSignals);
+  };
+
+  const handleApplySignalTemplate = (tplName: string) => {
+    const tpl = AUTOMOTIVE_SIGNAL_TEMPLATES.find((t) => t.name === tplName);
+    if (!tpl || !activeMessage || selectedSignalIndex === null) return;
+
+    const updatedSignals = [...activeMessage.signals];
+    const current = updatedSignals[selectedSignalIndex];
+    updatedSignals[selectedSignalIndex] = {
+      ...current,
+      name: tpl.name,
+      length: tpl.length,
+      byteOrder: tpl.byteOrder,
+      isSigned: tpl.isSigned,
+      scale: tpl.scale,
+      offset: tpl.offset,
+      min: tpl.min,
+      max: tpl.max,
+      unit: tpl.unit,
+    };
     handleUpdateMessageField('signals', updatedSignals);
   };
 
@@ -637,6 +682,26 @@ export const VisualSchemaEditor: React.FC<VisualSchemaEditorProps> = ({
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
+                        <select
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleApplySignalTemplate(e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-[11px] font-mono text-cyan-300 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                        >
+                          <option value="" disabled>
+                            Load Automotive Preset...
+                          </option>
+                          {AUTOMOTIVE_SIGNAL_TEMPLATES.map((t) => (
+                            <option key={t.name} value={t.name}>
+                              {t.name} ({t.unit || 'val'}, {t.length}b)
+                            </option>
+                          ))}
+                        </select>
+
                         <button
                           onClick={() => handleDuplicateSignal(selectedSignalIndex)}
                           className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[11px] font-semibold flex items-center space-x-1 cursor-pointer"
@@ -963,6 +1028,17 @@ export const VisualSchemaEditor: React.FC<VisualSchemaEditorProps> = ({
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(exportDbcAsVectorDbc(getCurrentDatabase()));
+                  setCopiedSuccess(true);
+                  setTimeout(() => setCopiedSuccess(false), 2000);
+                }}
+                className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs flex items-center space-x-1 cursor-pointer"
+              >
+                {copiedSuccess ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedSuccess ? 'Copied' : 'Copy .dbc'}</span>
+              </button>
               <button
                 onClick={handleDownloadVectorDbc}
                 className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs rounded transition cursor-pointer flex items-center space-x-1"

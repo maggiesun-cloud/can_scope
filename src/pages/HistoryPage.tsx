@@ -8,6 +8,7 @@ import {
 } from '../types/can';
 import { indexedDbService, DEFAULT_RETENTION_MONTHS, DEFAULT_INDEXEDDB_SETTINGS } from '../services/indexedDb';
 import { formatTimestamp, formatBytesHex, formatAscii } from '../utils/formatters';
+import { exportToVectorAsc, exportToSocketCanDump, downloadFile } from '../utils/traceExporter';
 import { TraceReplayStation } from '../components/TraceReplayStation';
 import {
   Archive,
@@ -293,6 +294,52 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
       a.click();
       URL.revokeObjectURL(url);
       showStatus(`Exported ${frames.length} frames to JSON.`, 'success');
+    } catch (err: any) {
+      showStatus(`Export error: ${err.message}`, 'error');
+    }
+  };
+
+  // Export session to Vector .asc format
+  const handleExportAsc = async (session: SnifferSessionMeta, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const frames =
+        inspectingSessionId === session.id && inspectingFrames
+          ? inspectingFrames
+          : await indexedDbService.getSnifferSessionFrames(session.id);
+
+      if (!frames || frames.length === 0) {
+        showStatus('No frames found to export.', 'error');
+        return;
+      }
+
+      const ascContent = exportToVectorAsc(frames);
+      const filename = `${session.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_${session.timestamp}.asc`;
+      downloadFile(ascContent, filename, 'text/plain');
+      showStatus(`Exported ${frames.length} frames to Vector .asc format.`, 'success');
+    } catch (err: any) {
+      showStatus(`Export error: ${err.message}`, 'error');
+    }
+  };
+
+  // Export session to SocketCAN candump format
+  const handleExportCandump = async (session: SnifferSessionMeta, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      const frames =
+        inspectingSessionId === session.id && inspectingFrames
+          ? inspectingFrames
+          : await indexedDbService.getSnifferSessionFrames(session.id);
+
+      if (!frames || frames.length === 0) {
+        showStatus('No frames found to export.', 'error');
+        return;
+      }
+
+      const candumpContent = exportToSocketCanDump(frames, session.channel || 'can0');
+      const filename = `${session.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_${session.timestamp}.log`;
+      downloadFile(candumpContent, filename, 'text/plain');
+      showStatus(`Exported ${frames.length} frames to SocketCAN candump log.`, 'success');
     } catch (err: any) {
       showStatus(`Export error: ${err.message}`, 'error');
     }
@@ -965,10 +1012,26 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
 
                     <button
                       onClick={(e) => handleExportCsv(session, e)}
-                      className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 border border-zinc-800 transition cursor-pointer"
+                      className="p-1.5 rounded text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800 border border-zinc-800 transition cursor-pointer"
                       title="Export this capture as CSV"
                     >
                       <Download className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={(e) => handleExportAsc(session, e)}
+                      className="px-2 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-amber-300 hover:bg-zinc-800 border border-zinc-800 transition cursor-pointer"
+                      title="Export this capture in Vector Informatik .asc format"
+                    >
+                      .ASC
+                    </button>
+
+                    <button
+                      onClick={(e) => handleExportCandump(session, e)}
+                      className="px-2 py-1 rounded text-[11px] font-mono text-zinc-400 hover:text-cyan-300 hover:bg-zinc-800 border border-zinc-800 transition cursor-pointer"
+                      title="Export this capture in SocketCAN candump log format"
+                    >
+                      .LOG
                     </button>
 
                     <button
@@ -1018,6 +1081,24 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
                         >
                           <FileText className="w-3 h-3" />
                           <span>JSON</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleExportAsc(session)}
+                          className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded text-xs text-amber-300 font-mono transition cursor-pointer flex items-center space-x-1"
+                          title="Export as Vector .asc"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>ASC</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleExportCandump(session)}
+                          className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded text-xs text-cyan-300 font-mono transition cursor-pointer flex items-center space-x-1"
+                          title="Export as SocketCAN candump log"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>LOG</span>
                         </button>
                       </div>
                     </div>

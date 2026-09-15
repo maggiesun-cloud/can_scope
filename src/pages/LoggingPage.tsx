@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RecordingSession, CanFrame } from '../types/can';
+import { exportToVectorAsc, exportToSocketCanDump, downloadFile } from '../utils/traceExporter';
 import {
   Play,
   Square,
@@ -13,6 +14,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Save,
+  FileCode,
+  Terminal,
 } from 'lucide-react';
 
 interface LoggingPageProps {
@@ -77,6 +80,16 @@ export const LoggingPage: React.FC<LoggingPageProps> = ({
     a.download = `canscope_log_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadAsc = () => {
+    const content = exportToVectorAsc(frames);
+    downloadFile(content, `canscope_trace_${Date.now()}.asc`, 'text/plain');
+  };
+
+  const handleDownloadCandump = () => {
+    const content = exportToSocketCanDump(frames, 'can0');
+    downloadFile(content, `candump_${Date.now()}.log`, 'text/plain');
   };
 
   const estimatedSizeMb = ((frames.length * 48) / (1024 * 1024)).toFixed(2);
@@ -151,48 +164,100 @@ export const LoggingPage: React.FC<LoggingPageProps> = ({
       </div>
 
       {/* Export Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* CSV Exporter */}
-        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
-          <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <span>Standard CSV Log Format</span>
-          </div>
-          <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-            Columns: timestamp, direction, id, type, dlc, data (hex)
-          </p>
-          <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded text-[11px] font-mono text-zinc-400 truncate">
-            175780123.456,RX,0x100,STD,8,0F 00 40 1F 78 80 00 00
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
+              <FileText className="w-4 h-4 text-emerald-400" />
+              <span>Standard CSV</span>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed font-mono mt-1">
+              timestamp, direction, id, type, dlc, data (hex)
+            </p>
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-zinc-400 truncate mt-2">
+              175780123.456,RX,0x100,STD,8,0F 00 40 1F...
+            </div>
           </div>
           <button
             onClick={handleDownloadCsv}
             disabled={frames.length === 0}
             className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer"
           >
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span>Export as CSV File</span>
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Export CSV</span>
           </button>
         </div>
 
         {/* JSON Exporter */}
-        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3">
-          <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <span>Structured JSON Trace</span>
-          </div>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Full fidelity JSON payload including decoded DBC signals and timestamps
-          </p>
-          <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded text-[11px] font-mono text-zinc-400 truncate">
-            {`{ "id": 256, "idHex": "0x100", "data": [15,0,64,31...], "dlc": 8 }`}
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
+              <FileCode className="w-4 h-4 text-cyan-400" />
+              <span>Structured JSON</span>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+              Full fidelity JSON with timestamps and decoded signal maps
+            </p>
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-zinc-400 truncate mt-2">
+              {`[ { "id": 256, "idHex": "0x100", "dlc": 8 } ]`}
+            </div>
           </div>
           <button
             onClick={handleDownloadJson}
             disabled={frames.length === 0}
             className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer"
           >
-            <Download className="w-4 h-4 text-cyan-400" />
-            <span>Export as JSON File</span>
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+        {/* Vector .asc Exporter */}
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
+              <FileText className="w-4 h-4 text-amber-400" />
+              <span>Vector .asc Trace</span>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+              Compatible with Vector CANoe, CANalyzer, and PCAN-View
+            </p>
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-amber-300/80 truncate mt-2">
+              0.001200 1 100 Rx d 8 0F 00 40 1F...
+            </div>
+          </div>
+          <button
+            onClick={handleDownloadAsc}
+            disabled={frames.length === 0}
+            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-amber-400" />
+            <span>Export Vector .ASC</span>
+          </button>
+        </div>
+
+        {/* SocketCAN candump Exporter */}
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
+              <Terminal className="w-4 h-4 text-indigo-400" />
+              <span>SocketCAN Log</span>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+              Native Linux can-utils format for <code>canplayer -I file.log</code>
+            </p>
+            <div className="p-2 bg-zinc-950 border border-zinc-800 rounded text-[10px] font-mono text-indigo-300/80 truncate mt-2">
+              (175780123.456) can0 100#0F00401F...
+            </div>
+          </div>
+          <button
+            onClick={handleDownloadCandump}
+            disabled={frames.length === 0}
+            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-zinc-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Export candump .LOG</span>
           </button>
         </div>
       </div>
