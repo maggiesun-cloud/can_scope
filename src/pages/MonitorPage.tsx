@@ -1,6 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { CanFrame, FilterConfig } from '../types/can';
 import { formatTimestamp, formatBytesHex, formatAscii } from '../utils/formatters';
+import {
+  CaptureTriggerModal,
+  TriggerConfig,
+  DEFAULT_TRIGGER_CONFIG,
+} from '../components/CaptureTriggerModal';
 import {
   Play,
   Pause,
@@ -15,6 +20,9 @@ import {
   Archive,
   Clock,
   Save,
+  Crosshair,
+  Zap,
+  RotateCcw,
 } from 'lucide-react';
 
 interface MonitorPageProps {
@@ -48,8 +56,154 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
   const [idRangeMin, setIdRangeMin] = useState<string>('');
   const [idRangeMax, setIdRangeMax] = useState<string>('');
 
+  // Conditional Capture Trigger State
+  const [triggerConfig, setTriggerConfig] = useState<TriggerConfig>(DEFAULT_TRIGGER_CONFIG);
+  const [isTriggerModalOpen, setIsTriggerModalOpen] = useState(false);
+  const [triggerStatus, setTriggerStatus] = useState<'disarmed' | 'armed' | 'firing' | 'fired'>('disarmed');
+  const [firedTriggerInfo, setFiredTriggerInfo] = useState<{
+    idHex: string;
+    timestamp: number;
+    description: string;
+  } | null>(null);
+
+  const postFramesRemainingRef = useRef<number>(0);
+  const lastEvaluatedIndexRef = useRef<number>(0);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Trigger evaluation engine
+  useEffect(() => {
+    if (triggerStatus === 'disarmed' || triggerStatus === 'fired') {
+      lastEvaluatedIndexRef.current = frames.length;
+      return;
+    }
+
+    const newFrames = frames.slice(lastEvaluatedIndexRef.current);
+    lastEvaluatedIndexRef.current = frames.length;
+    if (newFrames.length === 0) return;
+
+    if (triggerStatus === 'firing') {
+      postFramesRemainingRef.current -= newFrames.length;
+      if (postFramesRemainingRef.current <= 0) {
+        setTriggerStatus('fired');
+        if (triggerConfig.action === 'freeze_buffer' && !isPaused) {
+          onTogglePause();
+        }
+        if (triggerConfig.action === 'snapshot_indexeddb') {
+          onSaveToIndexedDb?.();
+        }
+      }
+      return;
+    }
+
+    // Inspect each new frame for trigger criteria
+    for (const frame of newFrames) {
+      let matches = false;
+      let desc = '';
+
+      if (triggerConfig.conditionType === 'id_match') {
+        const targetId = triggerConfig.targetIdHex.startsWith('0x')
+          ? parseInt(triggerConfig.targetIdHex, 16)
+          : parseInt(triggerConfig.targetIdHex, 10);
+        if (!isNaN(targetId) && frame.id === targetId) {
+          matches = true;
+          desc = `Matched Target CAN ID ${frame.idHex}`;
+        }
+      } else if (triggerConfig.conditionType === 'byte_match') {
+        let idMatches = true;
+        if (triggerConfig.targetIdHex.trim()) {
+          const targetId = triggerConfig.targetIdHex.startsWith('0x')
+            ? parseInt(triggerConfig.targetIdHex, 16)
+            : parseInt(triggerConfig.targetIdHex, 10);
+          if (!isNaN(targetId) && frame.id !== targetId) {
+            idMatches = false;
+          }
+        }
+
+        if (idMatches && frame.data.length > triggerConfig.byteIndex) {
+          const byteVal = frame.data[triggerConfig.byteIndex];
+          const targetVal = triggerConfig.byteValueHex.startsWith('0x')
+            ? parseInt(triggerConfig.byteValueHex, 16)
+            : parseInt(triggerConfig.byteValueHex, 10);
+
+          if (!isNaN(targetVal)) {
+            if (triggerConfig.byteOperator === '==' && byteVal === targetVal) matches = true;
+            else if (triggerConfig.byteOperator === '!=' && byteVal !== targetVal) matches = true;
+            else if (triggerConfig.byteOperator === '>' && byteVal > targetVal) matches = true;
+            else if (triggerConfig.byteOperator === '<' && byteVal < targetVal) matches = true;
+
+            if (matches) {
+              desc = `Byte[${triggerConfig.byteIndex}] (0x${byteVal
+                .toString(16)
+                .toUpperCase()
+                .padStart(2, '0')}) ${triggerConfig.byteOperator} ${triggerConfig.byteValueHex}`;
+            }
+          }
+        }
+      } else if (triggerConfig.conditionType === 'dlc_condition') {
+        if (triggerConfig.dlcOperator === '>' && frame.dlc > triggerConfig.dlcValue) matches = true;
+        else if (triggerConfig.dlcOperator === '==' && frame.dlc === triggerConfig.dlcValue) matches = true;
+        else if (triggerConfig.dlcOperator === '<' && frame.dlc < triggerConfig.dlcValue) matches = true;
+
+        if (matches) desc = `DLC (${frame.dlc}) ${triggerConfig.dlcOperator} ${triggerConfig.dlcValue}`;
+      } else if (triggerConfig.conditionType === 'fd_brs') {
+        if (frame.brs || (frame.fd && frame.dlc > 8)) {
+          matches = true;
+          desc = `CAN-FD BRS Flag Active on ID ${frame.idHex}`;
+        }
+      } else if (triggerConfig.conditionType === 'id_range') {
+        const minId = triggerConfig.idRangeMinHex.startsWith('0x')
+          ? parseInt(triggerConfig.idRangeMinHex, 16)
+          : parseInt(triggerConfig.idRangeMinHex, 10);
+        const maxId = triggerConfig.idRangeMaxHex.startsWith('0x')
+          ? parseInt(triggerConfig.idRangeMaxHex, 16)
+          : parseInt(triggerConfig.idRangeMaxHex, 10);
+        if (!isNaN(minId) && !isNaN(maxId) && frame.id >= minId && frame.id <= maxId) {
+          matches = true;
+          desc = `CAN ID ${frame.idHex} in range [${triggerConfig.idRangeMinHex}..${triggerConfig.idRangeMaxHex}]`;
+        }
+      }
+
+      if (matches) {
+        setFiredTriggerInfo({
+          idHex: frame.idHex,
+          timestamp: frame.timestamp,
+          description: desc,
+        });
+
+        if (triggerConfig.action === 'highlight_only') {
+          setTriggerStatus('fired');
+        } else {
+          setTriggerStatus('firing');
+          postFramesRemainingRef.current = triggerConfig.postTriggerFrames;
+        }
+        break;
+      }
+    }
+  }, [frames, triggerStatus, triggerConfig, isPaused, onTogglePause, onSaveToIndexedDb]);
+
+  const handleArmTrigger = useCallback(() => {
+    setTriggerStatus('armed');
+    setFiredTriggerInfo(null);
+    lastEvaluatedIndexRef.current = frames.length;
+    if (isPaused) {
+      onTogglePause(); // Resume capturing to await trigger event
+    }
+  }, [frames.length, isPaused, onTogglePause]);
+
+  const handleDisarmTrigger = useCallback(() => {
+    setTriggerStatus('disarmed');
+  }, []);
+
+  const handleReArmTrigger = useCallback(() => {
+    setTriggerStatus('armed');
+    setFiredTriggerInfo(null);
+    lastEvaluatedIndexRef.current = frames.length;
+    if (isPaused) {
+      onTogglePause();
+    }
+  }, [frames.length, isPaused, onTogglePause]);
 
   // Auto-scroll when new frames arrive unless user scrolled up or paused
   useEffect(() => {
@@ -190,6 +344,55 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           >
             Time: <span className="font-semibold text-cyan-400 capitalize">{timeMode}</span>
           </button>
+
+          {/* Conditional Capture Trigger Button */}
+          {triggerStatus === 'disarmed' && (
+            <button
+              onClick={() => setIsTriggerModalOpen(true)}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 hover:border-amber-500/50 transition cursor-pointer"
+              title="Configure conditional logic analyzer triggers (Stop on CAN ID, Byte Match, or Error)"
+            >
+              <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+              <span>Trigger: <strong className="text-zinc-400">Off</strong></span>
+            </button>
+          )}
+
+          {triggerStatus === 'armed' && (
+            <button
+              onClick={() => setIsTriggerModalOpen(true)}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700 animate-pulse transition cursor-pointer shadow-sm"
+              title="Capture Trigger is Armed. Click to modify or disarm."
+            >
+              <Zap className="w-3.5 h-3.5 text-red-400 fill-current" />
+              <span className="font-semibold text-xs">
+                ARMED ({triggerConfig.conditionType === 'id_match' ? triggerConfig.targetIdHex : triggerConfig.conditionType})
+              </span>
+            </button>
+          )}
+
+          {triggerStatus === 'firing' && (
+            <div className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded bg-amber-950/90 border border-amber-600 text-amber-200 text-xs animate-pulse">
+              <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+              <span>Recording Post-Trigger ({postFramesRemainingRef.current})...</span>
+            </div>
+          )}
+
+          {triggerStatus === 'fired' && (
+            <div className="flex items-center space-x-1.5 px-2 py-1 rounded bg-amber-950/80 border border-amber-500/80 text-amber-200 text-xs">
+              <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono font-semibold">
+                TRIP: {firedTriggerInfo?.idHex}
+              </span>
+              <button
+                onClick={handleReArmTrigger}
+                className="px-1.5 py-0.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded text-[10px] cursor-pointer flex items-center space-x-0.5"
+                title="Re-Arm Trigger"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>Re-Arm</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Center: Search & Filter Box */}
@@ -319,12 +522,20 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
               filteredFrames.map((frame, index) => {
                 const isTx = frame.direction === 'TX';
                 const isFd = frame.fd;
+                const isTriggerEvent =
+                  firedTriggerInfo &&
+                  frame.timestamp === firedTriggerInfo.timestamp &&
+                  frame.idHex === firedTriggerInfo.idHex;
 
                 return (
                   <tr
                     key={`${frame.timestamp}-${frame.id}-${index}`}
                     onClick={() => onSelectFrame(frame)}
-                    className="hover:bg-cyan-950/20 cursor-pointer transition border-b border-zinc-900/60 select-text"
+                    className={`cursor-pointer transition select-text ${
+                      isTriggerEvent
+                        ? 'bg-amber-950/50 border-y-2 border-amber-500 shadow-lg text-white'
+                        : 'hover:bg-cyan-950/20 border-b border-zinc-900/60'
+                    }`}
                   >
                     {/* Timestamp */}
                     <td className="py-1.5 px-3 text-zinc-400 whitespace-nowrap text-[11px]">
@@ -345,7 +556,17 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
                     </td>
 
                     {/* CAN ID */}
-                    <td className="py-1.5 px-2 font-bold text-cyan-300">{frame.idHex}</td>
+                    <td className="py-1.5 px-2 font-bold text-cyan-300">
+                      <span className="flex items-center space-x-1">
+                        <span>{frame.idHex}</span>
+                        {isTriggerEvent && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-500 text-zinc-950 font-bold text-[9px] uppercase tracking-wider inline-flex items-center">
+                            <Crosshair className="w-2.5 h-2.5 mr-0.5" />
+                            TRIGGER
+                          </span>
+                        )}
+                      </span>
+                    </td>
 
                     {/* Type */}
                     <td className="py-1.5 px-2 text-[10px] text-zinc-400">
@@ -438,6 +659,19 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           Click any frame row for bit breakdown and DBC signal view
         </div>
       </div>
+
+      {/* Capture Trigger Configuration Modal */}
+      <CaptureTriggerModal
+        isOpen={isTriggerModalOpen}
+        onClose={() => setIsTriggerModalOpen(false)}
+        config={triggerConfig}
+        onSaveConfig={setTriggerConfig}
+        triggerStatus={triggerStatus}
+        onArmTrigger={handleArmTrigger}
+        onDisarmTrigger={handleDisarmTrigger}
+        onReArmTrigger={handleReArmTrigger}
+        firedDetails={firedTriggerInfo}
+      />
     </div>
   );
 };

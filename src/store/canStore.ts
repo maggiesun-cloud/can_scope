@@ -465,6 +465,10 @@ export function useCanStore() {
     [addToast]
   );
 
+  const streamReplayFrame = useCallback((frame: CanFrame) => {
+    frameBufferRef.current.push(frame);
+  }, []);
+
   return {
     status,
     systemInfo,
@@ -485,6 +489,7 @@ export function useCanStore() {
     togglePause,
     saveSnifferToIndexedDb,
     loadHistoricalFrames,
+    streamReplayFrame,
     updateIndexedDbSettings,
     handleConnect,
     handleDisconnect,

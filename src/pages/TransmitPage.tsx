@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
-import { BusStatus } from '../types/can';
+import { BusStatus, CanFrame } from '../types/can';
 import { transmitCanFrame } from '../services/api';
-import { Send, AlertTriangle, Play, Square, Clock, ShieldAlert, Check, Plus, Trash2 } from 'lucide-react';
+import { ObdDiagnosticStation } from '../components/ObdDiagnosticStation';
+import {
+  Send,
+  AlertTriangle,
+  Play,
+  Square,
+  Clock,
+  ShieldAlert,
+  Check,
+  Plus,
+  Trash2,
+  Activity,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
 
 interface TransmitPageProps {
   status: BusStatus;
   addToast: (title: string, message?: string, type?: any) => void;
+  frames?: CanFrame[];
 }
 
 interface PeriodicTask {
@@ -21,9 +36,11 @@ interface PeriodicTask {
   running: boolean;
 }
 
-export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast }) => {
+export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast, frames = [] }) => {
   const isConnected = status.connectionState === 'connected';
   const isListenOnly = status.listenOnly;
+
+  const [activeMode, setActiveMode] = useState<'manual' | 'obd'>('manual');
 
   // Single Frame Form State
   const [canIdInput, setCanIdInput] = useState('0x7DF'); // Standard OBD-II functional request
@@ -33,6 +50,13 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast }) 
   const [dlc, setDlc] = useState(8);
   const [payloadInput, setPayloadInput] = useState('02 01 0C 00 00 00 00 00'); // RPM PID request
   const [isSending, setIsSending] = useState(false);
+
+  const applyPreset = (idHex: string, payload: string, ext = false, fd = false) => {
+    setCanIdInput(idHex);
+    setPayloadInput(payload);
+    setIsExtended(ext);
+    setIsFd(fd);
+  };
 
   // Periodic Transmit Task List
   const [periodicTasks, setPeriodicTasks] = useState<PeriodicTask[]>([
@@ -173,14 +197,42 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast }) 
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full text-zinc-200">
-      <div>
-        <h2 className="text-base font-bold text-zinc-100 flex items-center space-x-2">
-          <Send className="w-5 h-5 text-amber-400" />
-          <span>CAN / CAN-FD Frame Transmission</span>
-        </h2>
-        <p className="text-xs text-zinc-400 mt-0.5">
-          Explicit frame injection for diagnostic requests, actuator triggering, and periodic node simulation
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="text-base font-bold text-zinc-100 flex items-center space-x-2">
+            <Send className="w-5 h-5 text-amber-400" />
+            <span>CAN / CAN-FD Transmission & Diagnostics</span>
+          </h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Explicit frame injection, periodic simulators, and pre-configured OBD-II / UDS diagnostic engines
+          </p>
+        </div>
+
+        {/* Primary View Switcher */}
+        <div className="flex items-center space-x-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800 text-xs">
+          <button
+            onClick={() => setActiveMode('manual')}
+            className={`px-3 py-1.5 rounded transition font-semibold cursor-pointer flex items-center space-x-1.5 ${
+              activeMode === 'manual'
+                ? 'bg-zinc-800 text-white shadow'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
+            <span>Frame Injector & Periodic Tasks</span>
+          </button>
+          <button
+            onClick={() => setActiveMode('obd')}
+            className={`px-3 py-1.5 rounded transition font-semibold cursor-pointer flex items-center space-x-1.5 ${
+              activeMode === 'obd'
+                ? 'bg-zinc-800 text-white shadow'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span>OBD-II Diagnostic Station (Live PIDs)</span>
+          </button>
+        </div>
       </div>
 
       {/* Safety Alert Banner */}
@@ -200,9 +252,69 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Single-Shot Transmit Builder */}
-        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-4">
+      {activeMode === 'obd' ? (
+        <ObdDiagnosticStation
+          isConnected={isConnected}
+          isListenOnly={isListenOnly}
+          frames={frames}
+          addToast={addToast}
+        />
+      ) : (
+        <div className="space-y-6">
+          {/* Quick Presets Bar */}
+          <div className="flex items-center space-x-2 text-xs overflow-x-auto pb-1">
+            <span className="text-zinc-500 shrink-0 font-semibold flex items-center space-x-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Quick Presets:</span>
+            </span>
+            <button
+              onClick={() => applyPreset('0x7DF', '02 01 0C 00 00 00 00 00')}
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              OBD-II RPM (0x7DF)
+            </button>
+            <button
+              onClick={() => applyPreset('0x7DF', '02 01 0D 00 00 00 00 00')}
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              OBD-II Speed (0x7DF)
+            </button>
+            <button
+              onClick={() => applyPreset('0x7DF', '02 01 05 00 00 00 00 00')}
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              OBD-II Temp (0x7DF)
+            </button>
+            <button
+              onClick={() => applyPreset('0x7E0', '02 10 03 00 00 00 00 00')}
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              UDS DiagSession (0x7E0)
+            </button>
+            <button
+              onClick={() => applyPreset('0x7E0', '02 3E 80 00 00 00 00 00')}
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              UDS Tester Present (0x7E0)
+            </button>
+            <button
+              onClick={() =>
+                applyPreset(
+                  '0x320',
+                  '00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 20 21 22 23 24 25 26 27 28 29 2A 2B 2C 2D 2E 2F 30 31 32 33 34 35 36 37 38 39 3A 3B 3C 3D 3E 3F',
+                  false,
+                  true
+                )
+              }
+              className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-cyan-300 rounded font-mono text-[11px] transition cursor-pointer"
+            >
+              CAN-FD 64B Demo (0x320)
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Single-Shot Transmit Builder */}
+            <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl space-y-4">
           <div className="flex items-center space-x-2 text-zinc-100 font-bold text-sm">
             <Send className="w-4 h-4 text-cyan-400" />
             <span>Single-Shot Transmission Builder</span>
@@ -338,6 +450,8 @@ export const TransmitPage: React.FC<TransmitPageProps> = ({ status, addToast }) 
           </div>
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 };

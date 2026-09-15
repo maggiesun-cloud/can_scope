@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BusStatus, CanBackendType, CanConfig, SystemInfo } from '../types/can';
+import { autoDetectBaudRate, AutoBaudResult } from '../services/api';
 import {
   X,
   Cpu,
@@ -12,6 +13,9 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Wand2,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 
 interface ConnectionModalProps {
@@ -40,6 +44,25 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showMacGuide, setShowMacGuide] = useState(false);
   const [copiedMacCommands, setCopiedMacCommands] = useState(false);
+  const [isDetectingBaud, setIsDetectingBaud] = useState(false);
+  const [baudDetectionResult, setBaudDetectionResult] = useState<AutoBaudResult | null>(null);
+
+  const handleAutoDetectBaud = async () => {
+    setIsDetectingBaud(true);
+    setBaudDetectionResult(null);
+    setErrorMsg(null);
+    try {
+      const result = await autoDetectBaudRate(channel, backend);
+      setBaudDetectionResult(result);
+      if (result.success && result.detectedBitrate) {
+        setBitrate(result.detectedBitrate);
+      }
+    } catch (err: any) {
+      setErrorMsg('Auto-baud detection failed: ' + (err.message || 'Bus error'));
+    } finally {
+      setIsDetectingBaud(false);
+    }
+  };
 
   const macOsInstallScript = [
     'python3 --version',
@@ -303,9 +326,30 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block font-semibold text-zinc-300">Nominal Bitrate</label>
-                <span className="text-[10px] text-cyan-400 font-mono">
-                  {bitrate >= 1000000 ? '1.0 Mbit/s' : `${bitrate / 1000} kbit/s`}
-                </span>
+                <div className="flex items-center space-x-1.5">
+                  <span className="text-[10px] text-cyan-400 font-mono">
+                    {bitrate >= 1000000 ? '1.0 Mbit/s' : `${bitrate / 1000} kbit/s`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAutoDetectBaud}
+                    disabled={isDetectingBaud}
+                    title="Probe bus passively in listen-only mode to detect matching speed"
+                    className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-950 text-cyan-300 border border-cyan-800 hover:bg-cyan-900 hover:border-cyan-700 transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDetectingBaud ? (
+                      <>
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                        <span>Probing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-2.5 h-2.5" />
+                        <span>Auto-Detect</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
               <select
                 value={bitrate}
@@ -322,6 +366,27 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Auto-Baud Detection Result Banner */}
+          {baudDetectionResult && (
+            <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-emerald-300 text-xs flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-bold">Auto-Detected: </span>
+                  <span className="font-mono font-bold text-emerald-200">
+                    {baudDetectionResult.detectedBitrate >= 1000000
+                      ? '1.0 Mbit/s'
+                      : `${baudDetectionResult.detectedBitrate / 1000} kbit/s`}
+                  </span>
+                  <span className="text-[10px] text-emerald-400/80 ml-2">
+                    ({baudDetectionResult.confidence.toUpperCase()} confidence)
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] text-zinc-400 font-mono">Applied to config</span>
+            </div>
+          )}
 
           {/* CAN-FD Options */}
           <div className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-lg space-y-2.5">

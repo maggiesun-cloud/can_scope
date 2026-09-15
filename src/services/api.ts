@@ -134,3 +134,27 @@ export async function clearErrors(): Promise<{ success: boolean }> {
   if (!res.ok) throw new Error('Failed to clear errors');
   return res.json();
 }
+
+export interface AutoBaudResult {
+  success: boolean;
+  detectedBitrate: number;
+  confidence: string;
+  testedRates: Array<{
+    bitrate: number;
+    status: 'detected' | 'silent' | 'no_traffic' | 'error';
+    validFrames: number;
+    errorFrames: number;
+  }>;
+  details: string;
+}
+
+export async function autoDetectBaudRate(channel: string, backend: string): Promise<AutoBaudResult> {
+  const res = await fetch(`${BASE_URL}/autobaud`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ channel, backend }),
+  });
+  if (!res.ok) throw new Error('Failed to auto-detect baud rate');
+  return res.json();
+}
+

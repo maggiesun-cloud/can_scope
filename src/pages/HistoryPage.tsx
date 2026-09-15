@@ -8,6 +8,7 @@ import {
 } from '../types/can';
 import { indexedDbService, DEFAULT_RETENTION_MONTHS, DEFAULT_INDEXEDDB_SETTINGS } from '../services/indexedDb';
 import { formatTimestamp, formatBytesHex, formatAscii } from '../utils/formatters';
+import { TraceReplayStation } from '../components/TraceReplayStation';
 import {
   Archive,
   Search,
@@ -32,6 +33,7 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
+  Radio,
   X,
 } from 'lucide-react';
 
@@ -40,6 +42,8 @@ interface HistoryPageProps {
   onLoadSessionIntoMonitor: (frames: CanFrame[], sessionName: string) => void;
   onSaveCurrentBuffer: (name?: string, notes?: string) => Promise<SnifferSessionMeta | null>;
   onNavigateToMonitor?: () => void;
+  onStreamFrameToMonitor?: (frame: CanFrame) => void;
+  addToast?: (title: string, message?: string, type?: any) => void;
   activeDbc?: any;
 }
 
@@ -48,8 +52,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   onLoadSessionIntoMonitor,
   onSaveCurrentBuffer,
   onNavigateToMonitor,
+  onStreamFrameToMonitor,
+  addToast,
   activeDbc,
 }) => {
+  // Navigation / Mode tab
+  const [activeTab, setActiveTab] = useState<'sessions' | 'replay'>('sessions');
+
   // State
   const [sessions, setSessions] = useState<SnifferSessionMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,6 +358,26 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
     }
   };
 
+  // Save imported trace directly to IndexedDB
+  const handleSaveTraceSession = async (frames: CanFrame[], name: string, notes?: string) => {
+    const hasFd = frames.some((f) => f.fd);
+    const hasClassic = frames.some((f) => !f.fd);
+    const protocol = hasFd && hasClassic ? 'mixed' : hasFd ? 'fd' : 'classic';
+
+    await indexedDbService.saveSnifferSession(
+      {
+        name,
+        channel: 'can0',
+        bitrate: 500000,
+        protocol,
+        notes: notes || `Imported trace file (${frames.length} frames)`,
+        tags: ['imported', 'trace_replay'],
+      },
+      frames
+    );
+    refreshData();
+  };
+
   // Filtered frames inside inspection view
   const filteredInspectFrames = useMemo(() => {
     if (!inspectingFrames) return [];
@@ -467,8 +496,44 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
         </div>
       </div>
 
-      {/* Storage & Capacity Overview Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Primary View Switcher */}
+      <div className="flex items-center space-x-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800 text-xs w-fit">
+        <button
+          onClick={() => setActiveTab('sessions')}
+          className={`px-3 py-1.5 rounded transition font-semibold cursor-pointer flex items-center space-x-1.5 ${
+            activeTab === 'sessions'
+              ? 'bg-zinc-800 text-white shadow'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Archive className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Captured Sessions Cache ({sessions.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('replay')}
+          className={`px-3 py-1.5 rounded transition font-semibold cursor-pointer flex items-center space-x-1.5 ${
+            activeTab === 'replay'
+              ? 'bg-zinc-800 text-white shadow'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Play className="w-3.5 h-3.5 text-amber-400" />
+          <span>Vector .asc / Log File Replay Station</span>
+        </button>
+      </div>
+
+      {activeTab === 'replay' ? (
+        <TraceReplayStation
+          onStreamFrameToMonitor={onStreamFrameToMonitor}
+          onSaveTraceToHistory={handleSaveTraceSession}
+          onLoadSessionIntoMonitor={onLoadSessionIntoMonitor}
+          onNavigateToMonitor={onNavigateToMonitor}
+          addToast={addToast}
+        />
+      ) : (
+        <div className="space-y-6">
+          {/* Storage & Capacity Overview Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-lg">
           <div className="flex items-center justify-between text-zinc-400 text-xs">
             <span>Saved Captures</span>
@@ -1028,6 +1093,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
             );
           })}
         </div>
+      )}
+      </div>
       )}
 
       {/* Save Modal */}

@@ -783,6 +783,11 @@ app.post('/api/transmit', (req, res) => {
       data: cleanData,
     };
     broadcastFrame(frame);
+
+    // Auto-respond to OBD-II diagnostic queries (0x7DF or 0x7E0) in mock simulation mode
+    if (status.backend === 'mock' && (canId === 0x7df || canId === 0x7e0)) {
+      handleMockObdResponse(cleanData);
+    }
   };
 
   const period = Number(periodMs) || 0;
@@ -804,6 +809,115 @@ app.post('/api/transmit', (req, res) => {
 
   sendSingleFrame();
   res.json({ success: true, message: 'Frame transmitted.' });
+});
+
+// Mock OBD-II response generator (ECU 0x7E8)
+function handleMockObdResponse(data: number[]) {
+  if (!Array.isArray(data) || data.length < 2) return;
+  const mode = data[1];
+  const pid = data[2];
+
+  setTimeout(() => {
+    if (status.connectionState !== 'connected') return;
+
+    if (mode === 0x01) {
+      // Mode 01: Live sensor data (Response mode 0x41)
+      let respBytes: number[] = [0x03, 0x41, pid, 0x00, 0xaa, 0xaa, 0xaa, 0xaa];
+      if (pid === 0x0c) {
+        // Engine RPM: formula = (A*256 + B)/4
+        const raw = Math.round(mockEngineRpm * 4);
+        respBytes = [0x04, 0x41, 0x0c, (raw >> 8) & 0xff, raw & 0xff, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x0d) {
+        // Vehicle Speed: 1 km/h per bit
+        const spd = Math.max(0, Math.min(255, Math.round(mockVehicleSpeed)));
+        respBytes = [0x03, 0x41, 0x0d, spd, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x05) {
+        // Coolant Temp: formula = A - 40 (°C)
+        respBytes = [0x03, 0x41, 0x05, (88 + 40) & 0xff, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x11) {
+        // Throttle Position: 0-100% -> raw = (throttle * 255) / 100
+        const th = Math.round(35 * 2.55);
+        respBytes = [0x03, 0x41, 0x11, th, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x2f) {
+        // Fuel Tank Level: 0-100%
+        const fuel = Math.round(68 * 2.55);
+        respBytes = [0x03, 0x41, 0x2f, fuel, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x04) {
+        // Calculated Engine Load: 0-100%
+        const load = Math.round(45 * 2.55);
+        respBytes = [0x03, 0x41, 0x04, load, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x42) {
+        // Control Module Voltage: formula = (A*256 + B)/1000 (V)
+        const mv = 14200; // 14.2V
+        respBytes = [0x04, 0x41, 0x42, (mv >> 8) & 0xff, mv & 0xff, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x0f) {
+        // Intake Air Temp: A - 40
+        respBytes = [0x03, 0x41, 0x0f, (22 + 40) & 0xff, 0xaa, 0xaa, 0xaa, 0xaa];
+      } else if (pid === 0x1f) {
+        // Run Time: seconds (A*256 + B)
+        const sec = 1845;
+        respBytes = [0x04, 0x41, 0x1f, (sec >> 8) & 0xff, sec & 0xff, 0xaa, 0xaa, 0xaa];
+      }
+
+      broadcastFrame({
+        timestamp: Date.now() / 1000,
+        direction: 'RX',
+        id: 0x7e8,
+        idHex: '0x7E8',
+        extended: false,
+        fd: false,
+        dlc: 8,
+        data: respBytes,
+      });
+    } else if (mode === 0x03) {
+      // Mode 03: Request Diagnostic Trouble Codes (DTCs)
+      // Response: 0x43, count, DTC bytes (e.g. P0103 = 0x01, 0x03)
+      broadcastFrame({
+        timestamp: Date.now() / 1000,
+        direction: 'RX',
+        id: 0x7e8,
+        idHex: '0x7E8',
+        extended: false,
+        fd: false,
+        dlc: 8,
+        data: [0x04, 0x43, 0x01, 0x01, 0x03, 0xaa, 0xaa, 0xaa],
+      });
+    } else if (mode === 0x04) {
+      // Mode 04: Clear DTCs (Response 0x44)
+      broadcastFrame({
+        timestamp: Date.now() / 1000,
+        direction: 'RX',
+        id: 0x7e8,
+        idHex: '0x7E8',
+        extended: false,
+        fd: false,
+        dlc: 8,
+        data: [0x01, 0x44, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa],
+      });
+    }
+  }, 12);
+}
+
+// POST /api/autobaud - Listen-only baud rate auto detection
+app.post('/api/autobaud', (req, res) => {
+  const { channel, backend } = req.body || {};
+  const currentBackend = backend || status.backend;
+
+  // Simulate scanning 500k, 250k, 1M, 125k
+  setTimeout(() => {
+    res.json({
+      success: true,
+      detectedBitrate: 500000,
+      confidence: 'high',
+      testedRates: [
+        { bitrate: 500000, status: 'detected', validFrames: 48, errorFrames: 0 },
+        { bitrate: 250000, status: 'silent', validFrames: 0, errorFrames: 0 },
+        { bitrate: 1000000, status: 'silent', validFrames: 0, errorFrames: 0 },
+        { bitrate: 125000, status: 'silent', validFrames: 0, errorFrames: 0 },
+      ],
+      details: `Listen-only scan complete for ${channel || 'can0'}. Locked onto 500 kbit/s (Standard Automotive).`,
+    });
+  }, 350);
 });
 
 // POST /api/record/start

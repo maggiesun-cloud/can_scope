@@ -39,6 +39,7 @@ export function App() {
     togglePause,
     saveSnifferToIndexedDb,
     loadHistoricalFrames,
+    streamReplayFrame,
     handleConnect,
     handleDisconnect,
     handleToggleRecording,
@@ -149,6 +150,8 @@ export function App() {
               onLoadSessionIntoMonitor={loadHistoricalFrames}
               onSaveCurrentBuffer={saveSnifferToIndexedDb}
               onNavigateToMonitor={() => setCurrentPage('monitor')}
+              onStreamFrameToMonitor={streamReplayFrame}
+              addToast={addToast}
               activeDbc={activeDbc}
             />
           )}
@@ -162,7 +165,7 @@ export function App() {
           )}
 
           {currentPage === 'transmit' && (
-            <TransmitPage status={status} addToast={addToast} />
+            <TransmitPage status={status} addToast={addToast} frames={frames} />
           )}
 
           {currentPage === 'errors' && (
